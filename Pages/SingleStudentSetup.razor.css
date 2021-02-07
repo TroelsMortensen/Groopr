@@ -1,0 +1,12 @@
+﻿.frame {
+    background-color: #77b8ff;
+    border: 2px solid black;
+    border-radius: 4px;
+    display: inline-block;
+    margin:3px;
+}
+
+.studentnum {
+    width: 10ch;
+    height:25px;
+}

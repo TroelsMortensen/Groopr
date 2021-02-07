@@ -1,0 +1,94 @@
+﻿@page "/Results"
+@using GrooprWASM.Data
+@using GrooprWASM.Data.GroupGeneration
+@using GrooprWASM.Data.Settings
+@using GrooprWASM.Model
+@inject RandomGroupsetStrategy tc
+@inject SettingsContainer sc
+
+
+<button class="neutral button" @onclick="StartGenerating">Start</button>
+<button class="negative button" @onclick="StopGenerating">Stop</button>
+<br/>
+<label>
+    Permutations evaluated: @numOfPerms in @dur seconds<br/>
+    @done
+</label>
+<hr/>
+@{
+    int idx = 1;
+}
+
+@foreach (GroupSet gs in groupSets)
+{
+    <div style="border: 2px solid black; display: inline-block; padding: 2px">
+        Combination @idx<!--, Score: @gs.Score-->
+    </div>
+    <br/>
+    <div style="border: 2px solid black;
+                    border-radius: 4px;
+                    display: inline-block;
+                    margin-bottom:15px;
+                    padding: 4px">
+
+        @foreach (Group g in gs.Groups)
+        {
+            <div style="background-color: #cce2fa;
+                            border: 2px solid black;
+                            border-radius: 4px;
+                            display: inline-block;
+                            margin:3px;
+                            padding: 4px">
+                Group: @g.GroupNum <br/>
+                <!--Point: @g.Score-->
+                <hr/>
+                @foreach (Student s in g.Members)
+                {
+                    @s.StudNum.Trim('\n')
+                    <br/>
+                }
+            </div>
+        }
+    </div>
+    <br/>
+    idx++;
+}
+
+
+@code {
+
+
+    private string isDisabled = "";
+
+    private List<GroupSet> groupSets = new();
+    private int numOfPerms;
+    private string done;
+    private int dur;
+
+    private async Task StartGenerating()
+
+    {
+        isDisabled = "disabled";
+        groupSets.Clear();
+
+        void MyAction(List<GroupSet> gs, int iterations, int duration)
+        {
+            Console.WriteLine("Updated");
+            groupSets = gs;
+            numOfPerms = iterations;
+            dur = duration;
+            StateHasChanged();
+        }
+
+        await tc.StartAsync(MyAction, sc);
+        done = "Finished ";
+    }
+
+
+    private void StopGenerating()
+    {
+        isDisabled = "";
+        tc.Stop();
+    }
+
+}

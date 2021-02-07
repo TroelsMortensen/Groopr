@@ -1,0 +1,209 @@
+﻿@page "/setup"
+@using GrooprWASM.Model
+@using GrooprWASM.Data
+@using GrooprWASM.Data.Settings
+@inject SettingsContainer SettingsContainer
+@inject NavigationManager navMgnr
+
+<h3>Setup Wishes</h3>
+<hr/>
+<div>
+    <label style="padding-right: 4px">Number of students: @SettingsContainer.Students.Count</label>
+</div>
+<div>
+    <label style="padding-right: 4px">Students per group:</label>
+    <input type="text" style="width: 3ch; overflow: hidden" @oninput="(s) => UpdateGroupNum(s)">
+</div>
+<div>
+    <label>Possible groups: <span style="color:red">@groupOptionsMessage</span></label>
+</div>
+<div>
+    @foreach (List<int> option in groupOptions)
+    {
+        <div>
+            <input type="checkbox" @oninput="(v) => SelectGroupOption(v, option)"> @DisplayGroupOption(option)
+        </div>
+    }
+</div>
+
+<!-- Student cards herunder -->
+<hr/>
+
+<button class="positive button" @onclick="AddStudent">
+    <bold>+</bold>
+</button>
+<button class="netrual button" @onclick="Validate">Validate</button>
+<label style="color: @errorColor">@validationMessage</label>
+<button class="neutral button" @onclick="GenerateResults">Next &rarr;</button>
+
+<div style="margin:10px">
+    @foreach (Student s in SettingsContainer.Students)
+    {
+        <SingleStudentSetup Student="s"
+                            OnDelete="@(s => { SettingsContainer.Students.Remove(s); StateHasChanged(); })"/>
+    }
+</div>
+
+
+@code {
+
+    private string validationMessage;
+    private string errorColor = "green";
+    private int studsPerGroup;
+    private string groupOptionsMessage;
+
+    private List<List<int>> groupOptions = new();
+
+    private void AddStudent()
+    {
+        SettingsContainer.Students.Add(new Student());
+    }
+
+    private void Validate()
+    {
+        try
+        {
+            DoValidation();
+        }
+        catch (Exception e)
+        {
+            errorColor = "red";
+            validationMessage = e.Message;
+        }
+    }
+
+    private void DoValidation()
+    {
+        new ResultValidator().ValidateSettings(SettingsContainer.Students);
+        if (studsPerGroup == 0) throw new Exception("You must select group size");
+        if (SettingsContainer.GroupOptions.Count == 0) throw new Exception("You must select group options");
+        
+        validationMessage = "All good";
+        errorColor = "green";
+    }
+
+    private void GenerateResults()
+    {
+        try
+        {
+            DoValidation();
+            navMgnr.NavigateTo("/Results");
+        }
+        catch (Exception e)
+        {
+            errorColor = "red";
+            validationMessage = e.Message;
+        }
+    }
+
+    private void CalculatePossibleGroups()
+    {
+        SettingsContainer.GroupOptions.Clear();
+        if (studsPerGroup == 0 || SettingsContainer.Students.Count == 0)
+        {
+            groupOptionsMessage = "Both inputs must be larger than 0";
+            return;
+        }
+        groupOptionsMessage = "";
+        groupOptions.Clear();
+        if (SettingsContainer.Students.Count % studsPerGroup == 0) // perfect fit
+        {
+            CalcPerfectGroupFit();
+            return;
+        }
+        CalcPlus1GroupFit();
+        CalcMinus1GroupFit();
+    }
+
+    private void CalcPlus1GroupFit()
+    {
+        List<int> option = new();
+        int current = SettingsContainer.Students.Count;
+        while (current % studsPerGroup != 0)
+        {
+            option.Add(studsPerGroup + 1);
+            current -= studsPerGroup + 1;
+        }
+
+        while (current > 0)
+        {
+            option.Add(studsPerGroup);
+            current -= studsPerGroup;
+        }
+
+        groupOptions.Add(option);
+    }
+
+    private void CalcMinus1GroupFit()
+    {
+        List<int> option = new();
+        int current = SettingsContainer.Students.Count;
+        while (current % studsPerGroup != 0)
+        {
+            option.Add(studsPerGroup - 1);
+            current -= studsPerGroup - 1;
+        }
+
+        while (current > 0)
+        {
+            option.Add(studsPerGroup);
+            current -= studsPerGroup;
+        }
+
+        groupOptions.Add(option);
+    }
+
+    private void CalcPerfectGroupFit()
+    {
+        List<int> option = new();
+        int current = SettingsContainer.Students.Count;
+        while (current > 0)
+        {
+            option.Add(studsPerGroup);
+            current -= studsPerGroup;
+        }
+
+        groupOptions.Add(option);
+    }
+
+    private void UpdateGroupNum(ChangeEventArgs evt)
+    {
+        try
+        {
+            string value = (string) evt.Value;
+            studsPerGroup = int.Parse(value.Trim());
+            CalculatePossibleGroups();
+        }
+        catch (Exception e)
+        {
+            groupOptions.Clear();
+            groupOptionsMessage = "Group number input is invalid: " + e.Message;
+            Console.WriteLine(e);
+        }
+    }
+
+    private string DisplayGroupOption(List<int> option)
+    {
+        string result = "";
+        foreach (int i in option)
+        {
+            result += i + ", ";
+        }
+        result = result.Remove(result.Length - 2);
+        return result;
+    }
+
+    private void SelectGroupOption(ChangeEventArgs evt, List<int> option)
+    {
+        bool isChosen = (bool) evt.Value;
+        if (isChosen)
+        {
+            SettingsContainer.GroupOptions.Add(option);
+        }
+        else
+        {
+            SettingsContainer.GroupOptions.Remove(option);
+        }
+    }
+
+}

@@ -1,0 +1,42 @@
+﻿@using GrooprWASM.Model
+<div class="frame">
+    <div style="margin:2px">
+
+        <div>
+            Student:
+            <a
+                style="cursor:pointer; float:right;margin-right: 2px; color:red" @onclick="Delete">
+                X
+            </a><br/>
+            <input type="text" class="studentnum" @bind-Value="Student.StudNum" @bind-Value:event="oninput">
+        </div>
+        <div>
+            <bold style="color:lawngreen">Plus</bold>:<br/>
+            <textarea style="resize:none; overflow:hidden; height:@(25 * (Student.PlusWishes?.Split("\n").Length ?? 1))px; width: 10ch"
+                        @bind="Student.PlusWishes" />
+        </div>
+        <div>
+            <bold style="color:orangered">Minus</bold>:<br/>
+            <textarea style="resize:none; overflow:hidden; height:@(25 * (Student.MinusWishes?.Split("\n").Length ?? 1))px; width: 10ch"
+                            @bind="Student.MinusWishes" />
+        </div>
+    </div>
+</div>
+
+
+@code {
+
+    [Parameter]
+    public Student Student { get; set; }
+
+    [Parameter]
+    public Action<Student> OnDelete { get; set; }
+
+    private int numOfPlusRows = 1;
+    private int numOfMinusRows = 1;
+
+    private void Delete()
+    {
+        OnDelete?.Invoke(Student);
+    }
+}

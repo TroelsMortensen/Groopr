@@ -1,0 +1,75 @@
+﻿@page "/import"
+@using GrooprWASM.Data
+@using GrooprWASM.Data.Import
+@using GrooprWASM.Data.Settings
+@using GrooprWASM.Model
+@inject SettingsContainer sc
+@inject NavigationManager navMgr
+
+<h3>Use this page to import data from a .txt file instead of manual setup</h3>
+<label>The format of the file must follow below standard. </label>
+<ul>
+    <li>Each line of the file is one student.</li>
+    <li>Each line must contain 2 semi-colons.</li>
+    <li>Each line must end with #.</li>
+</ul>
+<ol>
+    <li>
+        If a student has no wishes: <br/>
+        123456;;#
+    </li>
+    <li>
+        If a student has only positive wishes: <br/>
+        123456;<span style="color:#00cb00">654321,456321,789456</span>;#
+    </li>
+    <li>
+        If a student has only negative wishes: <br/>
+        123456;;<span style="color:red">654321,456321,789456</span>#
+    </li>
+    <li>
+        If a student has postive and negative wishes, put the positive first: <br/>
+        123456;<span style="color:#00cb00">654123,987147,124578</span>;<span style="color:red">654321,456321,789456</span>#
+    </li>
+</ol>
+<p>
+    Example: <br/>
+    <span style="background-color: #e3fbff;display: inline-block; padding: 10px; border: 2px solid black;
+">
+        297126;300545,268183,299116;785412#<br/>
+        276814;299116,299543,276814;654715#<br/>
+        306936;297107,299118,299112#<br/>
+        297109;;276814,297126,299543#<br/>
+        299118;299120,299120,297109;123654,789456#<br/>
+        253085;456123;273470,306936#<br/>
+        253078#<br/>
+    </span>
+</p>
+
+<hr/>
+<InputFile OnChange="@OnInputFileChange"></InputFile>
+<label>@errorMessage</label>
+
+@code {
+
+    private string errorMessage;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        
+        sc.Students.Clear();
+        errorMessage = "";
+        IBrowserFile file = e.File;
+        try
+        {
+            await new TxtImporter().ImportFile(e, file, sc);
+            navMgr.NavigateTo("/setup");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Some error occured: " + ex.Message;
+        }
+    }
+
+    
+
+}
