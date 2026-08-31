@@ -1,0 +1,40 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="AvaloniaUI.Views.Dialogs.ConfirmDialog"
+        x:Name="Root"
+        Title="Confirm"
+        Width="400"
+        Height="300"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="Manual">
+
+    <Grid Margin="16"
+          RowDefinitions="*,Auto">
+        <ScrollViewer Grid.Row="0"
+                      Margin="0,0,0,16"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+            <TextBlock Text="{Binding #Root.Message}"
+                       TextWrapping="Wrap" />
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Right"
+                    Spacing="8">
+            <Button Content="Cancel"
+                    IsCancel="True"
+                    MinWidth="80"
+                    Click="OnCancelClick" />
+            <Button Content="OK"
+                    IsDefault="True"
+                    MinWidth="80"
+                    Click="OnOkClick" />
+        </StackPanel>
+    </Grid>
+
+</Window>

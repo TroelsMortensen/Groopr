@@ -1,0 +1,157 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUI.ViewModels"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:studentData="clr-namespace:AvaloniaUI.ViewModels.StudentData"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="AvaloniaUI.Views.StudentData.StudentDataView"
+             x:DataType="studentData:StudentDataViewModel"
+             x:Name="Root">
+
+    <Design.DataContext>
+        <studentData:StudentDataViewModel />
+    </Design.DataContext>
+
+    <Grid Margin="12" RowDefinitions="Auto,*,Auto" ColumnDefinitions="250,*">
+        <Button Grid.Row="0"
+                Grid.Column="1"
+                Content="Next"
+                HorizontalAlignment="Right"
+                Command="{Binding NextCommand}" />
+
+        <Border Grid.Row="1"
+                Grid.Column="0"
+                Margin="0,12,12,0"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                BorderThickness="1"
+                Padding="8">
+            <DockPanel LastChildFill="True">
+                <TextBlock DockPanel.Dock="Top"
+                           Text="Students"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,8" />
+                <ListBox ItemsSource="{Binding Students}"
+                         SelectedItem="{Binding SelectedStudent}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="studentData:StudentEntryViewModel">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Button Grid.Column="0"
+                                        HorizontalAlignment="Stretch"
+                                        HorizontalContentAlignment="Left"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="4,2"
+                                        Content="{Binding DisplayLabel}"
+                                        Command="{Binding #Root.((studentData:StudentDataViewModel)DataContext).SelectStudentCommand}"
+                                        CommandParameter="{Binding}" />
+                                <Button Grid.Column="1"
+                                        Content="Delete"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding #Root.((studentData:StudentDataViewModel)DataContext).DeleteStudentCommand}"
+                                        CommandParameter="{Binding}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1"
+                      Grid.Column="1"
+                      Margin="0,12,0,0">
+            <StackPanel Spacing="12">
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        Padding="16"
+                        IsVisible="{Binding IsEditPanelVisible}">
+                    <StackPanel Spacing="12" MaxWidth="400" HorizontalAlignment="Left">
+                        <TextBlock Text="Edit Student"
+                                   FontWeight="SemiBold" />
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Student Number" />
+                            <TextBox Text="{Binding EditNumber}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Name (optional)" />
+                            <TextBox Text="{Binding EditName}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Positive Wishes (comma-separated)" />
+                            <TextBox Text="{Binding EditPositiveWishes}"
+                                     PlaceholderText="e.g. 2, 5, 12" />
+                        </StackPanel>
+
+                        <Button Content="Save Changes"
+                                HorizontalAlignment="Left"
+                                Command="{Binding SaveChangesCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        Padding="16">
+                    <StackPanel Spacing="12" MaxWidth="400" HorizontalAlignment="Left">
+                        <TextBlock Text="Add Student"
+                                   FontWeight="SemiBold" />
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Student Number" />
+                            <TextBox Text="{Binding FormNumber}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Name (optional)" />
+                            <TextBox Text="{Binding FormName}" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Positive Wishes (comma-separated)" />
+                            <TextBox Text="{Binding FormPositiveWishes}"
+                                     PlaceholderText="e.g. 2, 5, 12" />
+                        </StackPanel>
+
+                        <Button Content="Add Student"
+                                HorizontalAlignment="Left"
+                                Command="{Binding AddStudentCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        Padding="16">
+                    <StackPanel Spacing="12" MaxWidth="400" HorizontalAlignment="Left">
+                        <TextBlock Text="Bulk Import"
+                                   FontWeight="SemiBold" />
+
+                        <TextBlock Text="Download a template, fill it in Excel, then upload to replace the student list."
+                                   TextWrapping="Wrap"
+                                   Opacity="0.8" />
+
+                        <Button Content="Download CSV Template"
+                                HorizontalAlignment="Left"
+                                Command="{Binding DownloadTemplateCommand}"
+                                CommandParameter="{Binding #Root}" />
+
+                        <Button Content="Upload CSV..."
+                                HorizontalAlignment="Left"
+                                Command="{Binding ImportCsvCommand}"
+                                CommandParameter="{Binding #Root}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="2"
+                   Grid.Column="0"
+                   Grid.ColumnSpan="2"
+                   Margin="0,12,0,0"
+                   Text="{Binding StatusMessage}"
+                   IsVisible="{Binding StatusMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+    </Grid>
+
+</UserControl>
