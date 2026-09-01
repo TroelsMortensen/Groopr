@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
 using AvaloniaUI.Data;
+using AvaloniaUI.Data.ScoringConfiguration;
 using AvaloniaUI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -70,7 +71,7 @@ public partial class ScorerSetupViewModel : ViewModelBase
 
         try
         {
-            var enabledScorers = new List<ScorerConfigurationRecord>();
+            var enabledScorers = new List<ScorerConfiguration>();
 
             foreach (var card in ScorerCards.Where(card => card.IsRuleEnabled))
             {
@@ -109,10 +110,10 @@ public partial class ScorerSetupViewModel : ViewModelBase
         {
             switch (scorer)
             {
-                case MutualMatchConfiguration mutual:
+                case MutualMatchScoringConfiguration mutual:
                     ApplySavedConfiguration(ScorerKind.MutualMatch, mutual.Weight);
                     break;
-                case PartialMatchConfiguration partial:
+                case PartialMatchScoringConfiguration partial:
                     ApplySavedConfiguration(ScorerKind.PartialMatch, partial.Weight);
                     break;
             }
@@ -134,11 +135,11 @@ public partial class ScorerSetupViewModel : ViewModelBase
     private static bool TryParseWeight(string input, out double weight) =>
         double.TryParse(input, NumberStyles.Float, CultureInfo.InvariantCulture, out weight);
 
-    private static ScorerConfigurationRecord CreateConfiguration(ScorerKind kind, double weight) =>
+    private static ScorerConfiguration CreateConfiguration(ScorerKind kind, double weight) =>
         kind switch
         {
-            ScorerKind.MutualMatch => MutualMatchConfiguration.Create(weight),
-            ScorerKind.PartialMatch => PartialMatchConfiguration.Create(weight),
+            ScorerKind.MutualMatch => MutualMatchScoringConfiguration.Create(weight),
+            ScorerKind.PartialMatch => PartialMatchScoringConfiguration.Create(weight),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown scorer kind.")
         };
 
