@@ -17,7 +17,7 @@
             <Setter Property="Background" Value="Transparent" />
         </Style>
         <Style Selector="Border.modeCard.inactive">
-            <Setter Property="Opacity" Value="0.45" />
+            <Setter Property="Opacity" Value="0.25" />
             <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
         </Style>
         <Style Selector="RadioButton.modeHeader">
