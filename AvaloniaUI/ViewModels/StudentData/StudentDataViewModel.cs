@@ -19,6 +19,7 @@ public partial class StudentDataViewModel : ViewModelBase
     private readonly InputConfiguration _inputConfiguration;
     private readonly IDialogService _dialogService;
     private readonly IStudentCsvFileService _csvFileService;
+    private readonly Action _navigateToGroupSizing;
     private readonly StudentCsvImporter _csvImporter = new();
 
     public ObservableCollection<StudentEntryViewModel> Students { get; } = [];
@@ -50,18 +51,28 @@ public partial class StudentDataViewModel : ViewModelBase
 
     public bool IsEditPanelVisible => SelectedStudent is not null;
 
-    public StudentDataViewModel() : this(new InputConfiguration(), new NullDialogService(), new NullStudentCsvFileService())
+    public StudentDataViewModel() : this(new InputConfiguration(), new NullDialogService(), new NullStudentCsvFileService(), static () => { })
     {
     }
 
     public StudentDataViewModel(
         InputConfiguration inputConfiguration,
         IDialogService dialogService,
-        IStudentCsvFileService csvFileService)
+        IStudentCsvFileService csvFileService,
+        Action navigateToGroupSizing)
     {
         _inputConfiguration = inputConfiguration;
         _dialogService = dialogService;
         _csvFileService = csvFileService;
+        _navigateToGroupSizing = navigateToGroupSizing;
+
+        if (_inputConfiguration.StudentList is { } studentList)
+        {
+            foreach (var student in studentList.Students)
+            {
+                Students.Add(StudentEntryViewModel.FromStudent(student));
+            }
+        }
     }
 
     [RelayCommand]
@@ -193,7 +204,7 @@ public partial class StudentDataViewModel : ViewModelBase
         {
             var studentList = StudentList.Create(Students.Select(s => s.ToStudent()).ToList());
             _inputConfiguration.StudentList = studentList;
-            SetSuccessStatus($"Saved {studentList.Students.Count} students.");
+            _navigateToGroupSizing();
         }
         catch (Exception ex)
         {

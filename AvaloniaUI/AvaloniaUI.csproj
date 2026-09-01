@@ -39,5 +39,9 @@
         <DependentUpon>StudentDataView.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
+      <Compile Update="Views\GroupSizing\GroupSizingView.axaml.cs">
+        <DependentUpon>GroupSizingView.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
     </ItemGroup>
 </Project>

@@ -14,9 +14,23 @@ public partial class MainViewModel : ViewModelBase
 
     public MainViewModel()
     {
+        NavigateToStudentData();
+    }
+
+    private void NavigateToStudentData()
+    {
         CurrentViewModel = new StudentData.StudentDataViewModel(
             _inputConfiguration,
             _dialogService,
-            new StudentCsvFileService());
+            new StudentCsvFileService(),
+            NavigateToGroupSizing);
+    }
+
+    private void NavigateToGroupSizing()
+    {
+        CurrentViewModel = new GroupSizing.GroupSizingViewModel(
+            _inputConfiguration,
+            _dialogService,
+            NavigateToStudentData);
     }
 }

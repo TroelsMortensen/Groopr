@@ -1,0 +1,95 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:groupSizing="clr-namespace:AvaloniaUI.ViewModels.GroupSizing"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="AvaloniaUI.Views.GroupSizing.GroupSizingView"
+             x:DataType="groupSizing:GroupSizingViewModel">
+
+    <Design.DataContext>
+        <groupSizing:GroupSizingViewModel />
+    </Design.DataContext>
+
+    <Grid Margin="12" RowDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+            <Button Content="Back"
+                    HorizontalAlignment="Left"
+                    Command="{Binding BackCommand}" />
+            <Button Grid.Column="1"
+                    Content="Next"
+                    HorizontalAlignment="Right"
+                    Command="{Binding NextCommand}" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Margin="0,12,0,0">
+            <StackPanel Spacing="12" MaxWidth="500" HorizontalAlignment="Left">
+                <TextBlock Text="{Binding StudentCount, StringFormat={}{0} students}"
+                           FontWeight="SemiBold" />
+
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Calculate from priorities"
+                                   FontWeight="SemiBold" />
+
+                        <RadioButton Content="Use group size priorities"
+                                     IsChecked="{Binding IsPriorityMode}"
+                                     GroupName="GroupSizingMode" />
+
+                        <StackPanel Spacing="4" IsEnabled="{Binding IsPriorityMode}">
+                            <TextBlock Text="Group size priorities (comma-separated)" />
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding PriorityInput}"
+                                         PlaceholderText="e.g. 4, 3, 5" />
+                                <Button Grid.Column="1"
+                                        Content="Calculate"
+                                        Margin="8,0,0,0"
+                                        Command="{Binding CalculateCommand}" />
+                            </Grid>
+                        </StackPanel>
+
+                        <StackPanel Spacing="4"
+                                    IsEnabled="{Binding IsPriorityMode}"
+                                    IsVisible="{Binding CalculatedResultText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Text="Suggested distribution" />
+                            <TextBlock Text="{Binding CalculatedResultText}"
+                                       FontWeight="SemiBold" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        Padding="16">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Enter exact group sizes"
+                                   FontWeight="SemiBold" />
+
+                        <RadioButton Content="Enter specific group sizes"
+                                     IsChecked="{Binding IsManualMode}"
+                                     GroupName="GroupSizingMode" />
+
+                        <StackPanel Spacing="4" IsEnabled="{Binding IsManualMode}">
+                            <TextBlock Text="Group sizes (comma-separated)" />
+                            <TextBox Text="{Binding ManualSizesInput}"
+                                     PlaceholderText="e.g. 4, 4, 3, 3" />
+                            <TextBlock Text="The sum must equal the number of students."
+                                       Opacity="0.8"
+                                       TextWrapping="Wrap" />
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="2"
+                   Margin="0,12,0,0"
+                   Text="{Binding StatusMessage}"
+                   IsVisible="{Binding StatusMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+    </Grid>
+
+</UserControl>
