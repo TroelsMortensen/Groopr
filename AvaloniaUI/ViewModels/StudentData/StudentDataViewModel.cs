@@ -83,6 +83,7 @@ public partial class StudentDataViewModel : ViewModelBase
         LoadEditFields(entry);
     }
 
+    // TODO Need student number validation here also, will fix.
     [RelayCommand]
     private void SaveChanges()
     {
@@ -113,6 +114,7 @@ public partial class StudentDataViewModel : ViewModelBase
         SelectedStudent.Name = name;
         SelectedStudent.PositiveWishes = wishes;
 
+        SortStudents();
         CancelEdit();
     }
 
@@ -154,6 +156,7 @@ public partial class StudentDataViewModel : ViewModelBase
             PositiveWishes = wishes,
         });
 
+        SortStudents();
         ClearForm();
     }
 
@@ -246,6 +249,7 @@ public partial class StudentDataViewModel : ViewModelBase
                 Students.Add(StudentEntryViewModel.FromStudent(student));
             }
 
+            SortStudents();
             SetSuccessStatus($"Imported {studentList.Students.Count} students.");
         }
         catch (StudentCsvImportException ex)
@@ -296,4 +300,18 @@ public partial class StudentDataViewModel : ViewModelBase
         input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(static s => s.Length > 0)
             .ToList();
+
+    private void SortStudents()
+    {
+        var sorted = Students.OrderBy(static s => int.Parse(s.Number)).ToList();
+
+        for (var targetIndex = 0; targetIndex < sorted.Count; targetIndex++)
+        {
+            var currentIndex = Students.IndexOf(sorted[targetIndex]);
+            if (currentIndex != targetIndex)
+            {
+                Students.Move(currentIndex, targetIndex);
+            }
+        }
+    }
 }

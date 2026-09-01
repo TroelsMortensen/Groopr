@@ -9,7 +9,7 @@
         Icon="/Assets/avalonia-logo.ico"
         Title="Groopr"
         Width="1200"
-        Height="1200">
+        Height="800">
 
     <Design.DataContext>
         <vm:MainViewModel />
