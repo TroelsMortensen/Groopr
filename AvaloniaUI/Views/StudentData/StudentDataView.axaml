@@ -36,7 +36,8 @@
                          SelectedItem="{Binding SelectedStudent}">
                     <ListBox.Styles>
                         <Style Selector="ListBoxItem">
-                            <Setter Property="Padding" Value="0" />
+                            <Setter Property="Padding" Value="0, 6"/>
+                            <Setter Property="Margin" Value="0,2" />
                         </Style>
                     </ListBox.Styles>
                     <ListBox.ItemTemplate>
