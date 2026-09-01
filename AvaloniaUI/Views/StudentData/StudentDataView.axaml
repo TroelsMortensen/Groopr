@@ -14,7 +14,7 @@
         <studentData:StudentDataViewModel />
     </Design.DataContext>
 
-    <Grid Margin="12" RowDefinitions="Auto,*,Auto" ColumnDefinitions="250,*">
+    <Grid Margin="12" RowDefinitions="Auto,*,Auto" ColumnDefinitions="300,*">
         <Button Grid.Row="0"
                 Grid.Column="1"
                 Content="Next"
@@ -34,16 +34,16 @@
                            Margin="0,0,0,8" />
                 <ListBox ItemsSource="{Binding Students}"
                          SelectedItem="{Binding SelectedStudent}"
-                         Padding="0,0,4,0"
+                         Padding="0,0,20,0"
                          ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.Styles>
                         <Style Selector="ListBoxItem">
-                            <Setter Property="Padding" Value="0, 6"/>
+                            <Setter Property="Padding" Value="0,6"/>
                             <Setter Property="Margin" Value="0,2" />
                         </Style>
                         <Style Selector="ListBox ScrollBar:vertical">
                             <Setter Property="AllowAutoHide" Value="False" />
-                            <Setter Property="Width" Value="8" />
+                            <Setter Property="Width" Value="2" />
                             <Setter Property="Margin" Value="4,2,0,2" />
                         </Style>
                         <Style Selector="ListBox ScrollBar:vertical /template/ Thumb">
