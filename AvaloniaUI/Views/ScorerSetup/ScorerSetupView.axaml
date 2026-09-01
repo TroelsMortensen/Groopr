@@ -1,0 +1,126 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:scorerSetup="clr-namespace:AvaloniaUI.ViewModels.ScorerSetup"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="AvaloniaUI.Views.ScorerSetup.ScorerSetupView"
+             x:DataType="scorerSetup:ScorerSetupViewModel">
+
+    <Design.DataContext>
+        <scorerSetup:ScorerSetupViewModel />
+    </Design.DataContext>
+
+    <UserControl.Styles>
+        <Style Selector="Border.scorerCard">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Margin" Value="0,12,0,0" />
+        </Style>
+        <Style Selector="Border.scorerCardBody">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.scorerCardBody.inactive">
+            <Setter Property="Opacity" Value="0.25" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+        </Style>
+        <Style Selector="Border.titlePill">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="HorizontalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="CheckBox.titleHeader">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="CheckBox.titleHeader /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Margin" Value="8,0,0,0" />
+        </Style>
+        <Style Selector="CheckBox.titleHeader /template/ Grid > Border:first-child">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,-2,0,0" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid Margin="12" RowDefinitions="Auto,*,Auto">
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
+            <Button Content="Back"
+                    HorizontalAlignment="Left"
+                    Command="{Binding BackCommand}" />
+            <Button Grid.Column="1"
+                    Content="Next"
+                    HorizontalAlignment="Right"
+                    Command="{Binding NextCommand}" />
+        </Grid>
+
+        <ScrollViewer Grid.Row="1" Margin="0,12,0,0">
+            <StackPanel Spacing="16" HorizontalAlignment="Stretch">
+                <TextBlock Text="Scoring rules"
+                           FontSize="16"
+                           FontWeight="SemiBold" />
+
+                <ItemsControl ItemsSource="{Binding ScorerCards}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <UniformGrid Columns="2" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="scorerSetup:ScorerCardViewModel">
+                            <Border Classes="scorerCard"
+                                    Margin="0,0,12,0"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    Padding="16,20,16,16">
+                                <StackPanel Spacing="12">
+                                    <Border Classes="titlePill"
+                                            Margin="0,-28,0,0">
+                                        <CheckBox Classes="titleHeader"
+                                                  Content="{Binding Title}"
+                                                  IsChecked="{Binding IsRuleEnabled}" />
+                                    </Border>
+
+                                    <Border Classes="scorerCardBody"
+                                            Classes.inactive="{Binding IsInactive}"
+                                            Padding="0,4,0,0">
+                                        <StackPanel Spacing="12"
+                                                    IsEnabled="{Binding IsRuleEnabled}">
+                                            <TextBlock Text="{Binding Description}"
+                                                       FontSize="14"
+                                                       Opacity="0.85"
+                                                       TextWrapping="Wrap" />
+
+                                            <StackPanel Spacing="8">
+                                                <TextBlock Text="Weight"
+                                                           FontSize="14" />
+                                                <TextBox Text="{Binding WeightText}"
+                                                         MinHeight="32"
+                                                         PlaceholderText="e.g. 10.0" />
+                                                <TextBlock Text="Must be a decimal value greater than 0."
+                                                           FontSize="14"
+                                                           Opacity="0.8"
+                                                           TextWrapping="Wrap" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <TextBlock Grid.Row="2"
+                   Margin="0,12,0,0"
+                   Text="{Binding StatusMessage}"
+                   IsVisible="{Binding StatusMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+    </Grid>
+
+</UserControl>

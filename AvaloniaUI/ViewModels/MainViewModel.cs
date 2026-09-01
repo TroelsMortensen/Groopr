@@ -31,6 +31,15 @@ public partial class MainViewModel : ViewModelBase
         CurrentViewModel = new GroupSizing.GroupSizingViewModel(
             _inputConfiguration,
             _dialogService,
-            NavigateToStudentData);
+            NavigateToStudentData,
+            NavigateToScorerSetup);
+    }
+
+    private void NavigateToScorerSetup()
+    {
+        CurrentViewModel = new ScorerSetup.ScorerSetupViewModel(
+            _inputConfiguration,
+            _dialogService,
+            NavigateToGroupSizing);
     }
 }

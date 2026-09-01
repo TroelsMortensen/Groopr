@@ -13,6 +13,7 @@ public partial class GroupSizingViewModel : ViewModelBase
     private readonly InputConfiguration _inputConfiguration;
     private readonly IDialogService _dialogService;
     private readonly Action _navigateBack;
+    private readonly Action _navigateForward;
 
     public int StudentCount => _inputConfiguration.StudentList?.Students.Count ?? 0;
 
@@ -38,18 +39,20 @@ public partial class GroupSizingViewModel : ViewModelBase
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = string.Empty;
 
-    public GroupSizingViewModel() : this(new InputConfiguration(), new NullDialogService(), static () => { })
+    public GroupSizingViewModel() : this(new InputConfiguration(), new NullDialogService(), static () => { }, static () => { })
     {
     }
 
     public GroupSizingViewModel(
         InputConfiguration inputConfiguration,
         IDialogService dialogService,
-        Action navigateBack)
+        Action navigateBack,
+        Action navigateForward)
     {
         _inputConfiguration = inputConfiguration;
         _dialogService = dialogService;
         _navigateBack = navigateBack;
+        _navigateForward = navigateForward;
 
         if (_inputConfiguration.GroupSizeDistribution is { } distribution)
         {
@@ -111,7 +114,7 @@ public partial class GroupSizingViewModel : ViewModelBase
             }
 
             _inputConfiguration.GroupSizeDistribution = GroupSizeDistribution.Create(sizes, studentCount);
-            SetSuccessStatus($"Saved group size distribution: {FormatSizes(sizes)}.");
+            _navigateForward();
         }
         catch (Exception ex)
         {
@@ -132,8 +135,6 @@ public partial class GroupSizingViewModel : ViewModelBase
     }
 
     private void ClearStatus() => StatusMessage = string.Empty;
-
-    private void SetSuccessStatus(string message) => StatusMessage = message;
 
     private void ShowError(string message) => _ = _dialogService.ShowErrorAsync(message);
 

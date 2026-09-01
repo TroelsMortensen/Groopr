@@ -43,5 +43,9 @@
         <DependentUpon>GroupSizingView.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
+      <Compile Update="Views\ScorerSetup\ScorerSetupView.axaml.cs">
+        <DependentUpon>ScorerSetupView.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
     </ItemGroup>
 </Project>
