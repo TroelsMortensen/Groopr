@@ -33,11 +33,26 @@
                            FontWeight="SemiBold"
                            Margin="0,0,0,8" />
                 <ListBox ItemsSource="{Binding Students}"
-                         SelectedItem="{Binding SelectedStudent}">
+                         SelectedItem="{Binding SelectedStudent}"
+                         Padding="0,0,4,0"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                     <ListBox.Styles>
                         <Style Selector="ListBoxItem">
                             <Setter Property="Padding" Value="0, 6"/>
                             <Setter Property="Margin" Value="0,2" />
+                        </Style>
+                        <Style Selector="ListBox ScrollBar:vertical">
+                            <Setter Property="AllowAutoHide" Value="False" />
+                            <Setter Property="Width" Value="8" />
+                            <Setter Property="Margin" Value="4,2,0,2" />
+                        </Style>
+                        <Style Selector="ListBox ScrollBar:vertical /template/ Thumb">
+                            <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                            <Setter Property="CornerRadius" Value="5" />
+                            <Setter Property="MinHeight" Value="32" />
+                        </Style>
+                        <Style Selector="ListBox ScrollBar:vertical:pointerover /template/ Thumb">
+                            <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseMediumHighBrush}" />
                         </Style>
                     </ListBox.Styles>
                     <ListBox.ItemTemplate>
@@ -55,7 +70,7 @@
                                 </Panel>
                                 <Button Grid.Column="1"
                                         Content="Delete"
-                                        Margin="8,0,0,0"
+                                        Margin="8,0,6,0"
                                         Command="{Binding #Root.((studentData:StudentDataViewModel)DataContext).DeleteStudentCommand}"
                                         CommandParameter="{Binding}" />
                             </Grid>
