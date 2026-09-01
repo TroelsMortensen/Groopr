@@ -80,7 +80,14 @@ public partial class StudentDataViewModel : ViewModelBase
 
         ClearStatus();
         SelectedStudent = entry;
-        LoadEditFields(entry);
+    }
+
+    partial void OnSelectedStudentChanged(StudentEntryViewModel? value)
+    {
+        if (value is not null)
+        {
+            LoadEditFields(value);
+        }
     }
 
     // TODO Need student number validation here also, will fix.
