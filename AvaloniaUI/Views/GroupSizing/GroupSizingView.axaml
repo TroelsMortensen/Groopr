@@ -12,6 +12,27 @@
         <groupSizing:GroupSizingViewModel />
     </Design.DataContext>
 
+    <UserControl.Styles>
+        <Style Selector="Border.modeCard">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Border.modeCard.inactive">
+            <Setter Property="Opacity" Value="0.45" />
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundBaseLowBrush}" />
+        </Style>
+        <Style Selector="RadioButton.modeHeader">
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style Selector="RadioButton.modeHeader /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Margin" Value="12,0,0,0" />
+        </Style>
+        <Style Selector="RadioButton.modeHeader /template/ Grid > Border:first-child">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,-2,0,0" />
+        </Style>
+    </UserControl.Styles>
+
     <Grid Margin="12" RowDefinitions="Auto,*,Auto">
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
             <Button Content="Back"
@@ -24,65 +45,88 @@
         </Grid>
 
         <ScrollViewer Grid.Row="1" Margin="0,12,0,0">
-            <StackPanel Spacing="12" MaxWidth="500" HorizontalAlignment="Left">
+            <StackPanel Spacing="16" HorizontalAlignment="Stretch">
                 <TextBlock Text="{Binding StudentCount, StringFormat={}{0} students}"
+                           FontSize="16"
                            FontWeight="SemiBold" />
 
-                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                        BorderThickness="1"
-                        Padding="16">
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="Calculate from priorities"
-                                   FontWeight="SemiBold" />
-
-                        <RadioButton Content="Use group size priorities"
+                <Grid ColumnDefinitions="*,*"
+                      ColumnSpacing="24"
+                      HorizontalAlignment="Stretch">
+                    <StackPanel Grid.Column="0" Spacing="8">
+                        <RadioButton Classes="modeHeader"
+                                     Content="Use group size priorities"
                                      IsChecked="{Binding IsPriorityMode}"
-                                     GroupName="GroupSizingMode" />
+                                     GroupName="GroupSizingMode"
+                                     HorizontalAlignment="Center"
+                                     FontSize="18"
+                                     FontWeight="SemiBold" />
 
-                        <StackPanel Spacing="4" IsEnabled="{Binding IsPriorityMode}">
-                            <TextBlock Text="Group size priorities (comma-separated)" />
-                            <Grid ColumnDefinitions="*,Auto">
-                                <TextBox Grid.Column="0"
-                                         Text="{Binding PriorityInput}"
-                                         PlaceholderText="e.g. 4, 3, 5" />
-                                <Button Grid.Column="1"
-                                        Content="Calculate"
-                                        Margin="8,0,0,0"
-                                        Command="{Binding CalculateCommand}" />
-                            </Grid>
-                        </StackPanel>
+                        <Border Classes="modeCard"
+                                Classes.inactive="{Binding IsManualMode}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                Padding="16">
+                            <StackPanel Spacing="12">
+                                <StackPanel Spacing="8"
+                                            IsEnabled="{Binding IsPriorityMode}">
+                                    <TextBlock Text="Group size priorities (comma-separated)"
+                                               FontSize="14" />
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0"
+                                                 MinHeight="32"
+                                                 Text="{Binding PriorityInput}"
+                                                 PlaceholderText="e.g. 4, 3, 5" />
+                                        <Button Grid.Column="1"
+                                                Content="Calculate"
+                                                MinHeight="32"
+                                                Margin="8,0,0,0"
+                                                Command="{Binding CalculateCommand}" />
+                                    </Grid>
+                                </StackPanel>
 
-                        <StackPanel Spacing="4"
-                                    IsEnabled="{Binding IsPriorityMode}"
-                                    IsVisible="{Binding CalculatedResultText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
-                            <TextBlock Text="Suggested distribution" />
-                            <TextBlock Text="{Binding CalculatedResultText}"
-                                       FontWeight="SemiBold" />
-                        </StackPanel>
+                                <StackPanel Spacing="8"
+                                            IsEnabled="{Binding IsPriorityMode}"
+                                            IsVisible="{Binding CalculatedResultText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}">
+                                    <TextBlock Text="Suggested distribution"
+                                               FontSize="14" />
+                                    <TextBlock Text="{Binding CalculatedResultText}"
+                                               FontSize="14"
+                                               FontWeight="SemiBold" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-                </Border>
 
-                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
-                        BorderThickness="1"
-                        Padding="16">
-                    <StackPanel Spacing="12">
-                        <TextBlock Text="Enter exact group sizes"
-                                   FontWeight="SemiBold" />
-
-                        <RadioButton Content="Enter specific group sizes"
+                    <StackPanel Grid.Column="1" Spacing="8">
+                        <RadioButton Classes="modeHeader"
+                                     Content="Enter specific group sizes"
                                      IsChecked="{Binding IsManualMode}"
-                                     GroupName="GroupSizingMode" />
+                                     GroupName="GroupSizingMode"
+                                     HorizontalAlignment="Center"
+                                     FontSize="18"
+                                     FontWeight="SemiBold" />
 
-                        <StackPanel Spacing="4" IsEnabled="{Binding IsManualMode}">
-                            <TextBlock Text="Group sizes (comma-separated)" />
-                            <TextBox Text="{Binding ManualSizesInput}"
-                                     PlaceholderText="e.g. 4, 4, 3, 3" />
-                            <TextBlock Text="The sum must equal the number of students."
-                                       Opacity="0.8"
-                                       TextWrapping="Wrap" />
-                        </StackPanel>
+                        <Border Classes="modeCard"
+                                Classes.inactive="{Binding IsPriorityMode}"
+                                BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                                BorderThickness="1"
+                                Padding="16">
+                            <StackPanel Spacing="8"
+                                        IsEnabled="{Binding IsManualMode}">
+                                <TextBlock Text="Group sizes (comma-separated)"
+                                           FontSize="14" />
+                                <TextBox Text="{Binding ManualSizesInput}"
+                                         MinHeight="32"
+                                         PlaceholderText="e.g. 4, 4, 3, 3" />
+                                <TextBlock Text="The sum must equal the number of students."
+                                           FontSize="14"
+                                           Opacity="0.8"
+                                           TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
                     </StackPanel>
-                </Border>
+                </Grid>
             </StackPanel>
         </ScrollViewer>
 
