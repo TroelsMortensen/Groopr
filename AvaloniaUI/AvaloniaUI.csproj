@@ -51,5 +51,9 @@
         <DependentUpon>ScorerSetupView.axaml</DependentUpon>
         <SubType>Code</SubType>
       </Compile>
+      <Compile Update="Views\InvalidationSetup\InvalidationSetupView.axaml.cs">
+        <DependentUpon>InvalidationSetupView.axaml</DependentUpon>
+        <SubType>Code</SubType>
+      </Compile>
     </ItemGroup>
 </Project>

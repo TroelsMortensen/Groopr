@@ -72,44 +72,4 @@ Randomly sort the list, create groups.
 In case of duplicate random sorts, this will produce many duplicate group compositions.
 
 # prompt
-
-Next feature. This requires the fourth and last view: GroupCompositionGenerationView.
-
-The "Next" button on the third view, ScorerSetup, should navigate to this new view, if all validation passes.
-
-The fourth view will have a start/stop button at the top.
-
-When navigating to the view, it will use the InputConfiguration to setup various things:
-- Map the ScorerConfigurations to matching ScoringStrategies from the Logic project, these will put added to the GroupCompositionScorer.
-
-When pressing the start button, the view will start generating group compositions using the IGroupCompositionProducer interface, with the RandomShuffleStrategy implementation. This class should be used as an IEnumerable, i.e. in a foreach loop.
-
-The start button will switch to a stop button, which when clicked will stop the generation.
-
-There should be a counter showing the number of group compositions generated and scored, which is updated in the UI, every 100 iterations.
-
-The view retains a list of the top 5 group compositions, sorted by score, highest score on top.
-
-When a better group composition is generated, the lowest scoring group composition is removed, and the new one is added to its place in the vertical list, which remains sorted by score, highest score on top.
-
-This group generation will potentially run for a very long time, until the stop button is clicked.
-
-It is important that the UI is responsive, and that the generation does not block the UI. I am unsure how to achieve this, so any suggestions are welcome. I imaging using async programming, and pausing the thread to let the UI update. Or use Task.run(..). Maybe with a CancellationTokenSource to cancel the task.
-
-If clicking back, the group generation should be paused, and a confirmation dialog should be shown to the user, asking if they want to stop and clear the generation.
-
-The UI shows a card for each group composition, showing the score and the groups, something like this:
-
-Score: 95.7
-Group 1
-- 123456, Jan Jansen
-- 654321, Pieter Janssen
-- 321456, Jan Jansen
-
-Group 2
-- 986532, Per Person
-- 546532, Ida Idadaughter
-- 786545, John Doe
-
-.... and so on.
-
+...

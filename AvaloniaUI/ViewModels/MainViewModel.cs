@@ -41,6 +41,15 @@ public partial class MainViewModel : ViewModelBase
             _inputConfiguration,
             _dialogService,
             NavigateToGroupSizing,
+            NavigateToInvalidationSetup);
+    }
+
+    private void NavigateToInvalidationSetup()
+    {
+        CurrentViewModel = new InvalidationSetup.InvalidationSetupViewModel(
+            _inputConfiguration,
+            _dialogService,
+            NavigateToScorerSetup,
             NavigateToGroupCompositionGeneration);
     }
 
@@ -49,6 +58,6 @@ public partial class MainViewModel : ViewModelBase
         CurrentViewModel = new GroupCompositionGeneration.GroupCompositionGenerationViewModel(
             _inputConfiguration,
             _dialogService,
-            NavigateToScorerSetup);
+            NavigateToInvalidationSetup);
     }
 }
