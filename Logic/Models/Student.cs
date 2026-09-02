@@ -16,6 +16,9 @@ public class Student(
     public IReadOnlyList<StudentNumber> PreviousGroupMembers { get; } =
         previousGroupMembers ?? [];
 
+    private Student() : this("", [])
+    {}
+    
     public static Student Create(string number,
         IReadOnlyList<StudentNumber> positiveWishes,
         string? name = null,
