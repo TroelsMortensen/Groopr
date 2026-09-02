@@ -43,18 +43,15 @@ Conceptual Architecture of the Grouping Engine
 
 ## Tasks
 
-### Task 1 setup scoring UI
-
-In this third view of the wizard, the user will be able to configure the scoring rules.
-
-Current scoring rules:
-- Mutual wishes
-- Partial wishes
-
-
 ### Task 2 setup group generation UI
+- Start/stop button to start generating group compositions.
+- InputConfiguration is used to start the generation. 
+- The view keeps the top 5 group compositions, in five UI cards, stacked vertically. Each group composition shows its score.
+- When a better group composition is generated, the lowest scoring group composition is removed, and the new one is added to its place in the vertical list, which remains sorted by score, highest score on top.
 
 ### Task 3 multithreading
+- Maybe....
+
 
 ### Task 3 Group composition Generation
 
@@ -76,69 +73,43 @@ In case of duplicate random sorts, this will produce many duplicate group compos
 
 # prompt
 
+Next feature. This requires the fourth and last view: GroupCompositionGenerationView.
 
-We will start work on the third view: seting up scoring. The view will consists of two columns of cards, each card contains data for a scoring rule. Current scoring rules:
-- Mutual matches
-- Partial matches
+The "Next" button on the third view, ScorerSetup, should navigate to this new view, if all validation passes.
 
-Each card will have a title at the top, preferably as a pill box right on the top edge of the card. There will also be a checkbox to enable/disable the rule.
+The fourth view will have a start/stop button at the top.
 
-For the mutual matches, the user must input a decimal value above 0.
+When navigating to the view, it will use the InputConfiguration to setup various things:
+- Map the ScorerConfigurations to matching ScoringStrategies from the Logic project, these will put added to the GroupCompositionScorer.
 
-For the partial matches, the user must input a decimal value above 0.
+When pressing the start button, the view will start generating group compositions using the IGroupCompositionProducer interface, with the RandomShuffleStrategy implementation. This class should be used as an IEnumerable, i.e. in a foreach loop.
 
-At the top left (like the other views), there will be a button to go back to the previous view. No data is cleared when going back.
+The start button will switch to a stop button, which when clicked will stop the generation.
 
-At the top right, there will be a button to go to the next view. Eventually, the button will take the user to the fourth view, but for now, this will be disabled.
+There should be a counter showing the number of group compositions generated and scored, which is updated in the UI, every 100 iterations.
 
-When the user clicks the "next" button, the data from all enabled scoring rule cards will be collected, and put into the shared InputConfiguration object, that has been used by the previous two views. See records below.
+The view retains a list of the top 5 group compositions, sorted by score, highest score on top.
 
-The data from each card will be collected into dedicated simple records. I want a record type for each scoring rule. They all inherit from the same base class, something like this:
+When a better group composition is generated, the lowest scoring group composition is removed, and the new one is added to its place in the vertical list, which remains sorted by score, highest score on top.
 
-```csharp
-// The base type stored in your InputConfiguration
-public abstract record ScorerConfigurationRecord;
+This group generation will potentially run for a very long time, until the stop button is clicked.
 
-// Specific configuration payloads for each scorer
-public record MutualMatchConfiguration(double Weight) : ScorerConfigurationRecord;
-public record PartialMatchConfiguration(double Weight) : ScorerConfigurationRecord;
-```
+It is important that the UI is responsive, and that the generation does not block the UI. I am unsure how to achieve this, so any suggestions are welcome. I imaging using async programming, and pausing the thread to let the UI update. Or use Task.run(..). Maybe with a CancellationTokenSource to cancel the task.
 
-Put these records into the AvaloniaUI/Data directory.
+If clicking back, the group generation should be paused, and a confirmation dialog should be shown to the user, asking if they want to stop and clear the generation.
 
-More scoring configuration records may be added in the future.
+The UI shows a card for each group composition, showing the score and the groups, something like this:
 
-Update the `InputConfiguration` class to have a list of `ScorerConfigurationRecord` objects.
+Score: 95.7
+Group 1
+- 123456, Jan Jansen
+- 654321, Pieter Janssen
+- 321456, Jan Jansen
 
-I want validation on the scoring records, using smart constructors. Clicking the "next" button collects all the scoring rule cards data into records, and catches validation errors. In case of errors, the user is presented with a message using the existing ErrorDialog, which has been used in the previous views.
+Group 2
+- 986532, Per Person
+- 546532, Ida Idadaughter
+- 786545, John Doe
 
-Below is the description from my brainstorming session with another AI for inspiration:
+.... and so on.
 
-Task: Implement Step 3 Scorer Setup and Polymorphic Configuration Architecture
-
-We are building a multi-step Avalonia wizard for a C# "Group Matcher" application. We need to implement Step 3 (Scorer Setup), which uses a card-based UI (toggles/checkboxes per scorer) and serializes the selections into a shared, state-holding InputConfiguration object using a type-safe, polymorphic record architecture.
-
-Requirements:
-Polymorphic Configuration Records:
-Create a base abstract record for scorer configurations and specific subclasses for each strategy. Do not use magic strings or a monolithic enum that requires modification for future scorers.
-
-C#
-public abstract record ScorerConfigurationRecord;
-public record MutualMatchConfiguration(double Weight) : ScorerConfigurationRecord;
-public record PartialMatchConfiguration(double Weight) : ScorerConfigurationRecord;
-Update the Shared State Container (InputConfiguration):
-Ensure the shared wizard configuration class includes a collection for these configurations:
-
-C#
-public class InputConfiguration
-{
-    // ... existing fields (Students, GroupSizes, etc.)
-    public List<ScorerConfigurationRecord> EnabledScorers { get; set; } = [];
-}
-Step 3 ViewModel & UI Card Model:
-
-Create a ScorerCardViewModel tracking UI state (e.g., IsEnabled boolean, Weight double, Title, Description).
-
-In the Step 3 ViewModel (ScorerSetupViewModel), maintain an ObservableCollection<ScorerCardViewModel> populated with the available scorers.
-
-Implement a "Next" command that loops through enabled cards, maps them to their respective ScorerConfigurationRecord subclasses, and updates the shared InputConfiguration.

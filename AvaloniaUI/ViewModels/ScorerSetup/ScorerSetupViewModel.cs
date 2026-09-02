@@ -16,24 +16,27 @@ public partial class ScorerSetupViewModel : ViewModelBase
     private readonly InputConfiguration _inputConfiguration;
     private readonly IDialogService _dialogService;
     private readonly Action _navigateBack;
+    private readonly Action _navigateForward;
 
     public ObservableCollection<ScorerCardViewModel> ScorerCards { get; } = [];
 
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = string.Empty;
 
-    public ScorerSetupViewModel() : this(new InputConfiguration(), new NullDialogService(), static () => { })
+    public ScorerSetupViewModel() : this(new InputConfiguration(), new NullDialogService(), static () => { }, static () => { })
     {
     }
 
     public ScorerSetupViewModel(
         InputConfiguration inputConfiguration,
         IDialogService dialogService,
-        Action navigateBack)
+        Action navigateBack,
+        Action navigateForward)
     {
         _inputConfiguration = inputConfiguration;
         _dialogService = dialogService;
         _navigateBack = navigateBack;
+        _navigateForward = navigateForward;
 
         var mutualCard = new ScorerCardViewModel(
             ScorerKind.MutualMatch,
@@ -85,7 +88,7 @@ public partial class ScorerSetupViewModel : ViewModelBase
             }
 
             _inputConfiguration.EnabledScorers = enabledScorers;
-            SetSuccessStatus($"Saved {enabledScorers.Count} scoring rule(s).");
+            _navigateForward();
         }
         catch (Exception ex)
         {
@@ -144,8 +147,6 @@ public partial class ScorerSetupViewModel : ViewModelBase
         };
 
     private void ClearStatus() => StatusMessage = string.Empty;
-
-    private void SetSuccessStatus(string message) => StatusMessage = message;
 
     private void ShowError(string message) => _ = _dialogService.ShowErrorAsync(message);
 }

@@ -40,6 +40,15 @@ public partial class MainViewModel : ViewModelBase
         CurrentViewModel = new ScorerSetup.ScorerSetupViewModel(
             _inputConfiguration,
             _dialogService,
-            NavigateToGroupSizing);
+            NavigateToGroupSizing,
+            NavigateToGroupCompositionGeneration);
+    }
+
+    private void NavigateToGroupCompositionGeneration()
+    {
+        CurrentViewModel = new GroupCompositionGeneration.GroupCompositionGenerationViewModel(
+            _inputConfiguration,
+            _dialogService,
+            NavigateToScorerSetup);
     }
 }
