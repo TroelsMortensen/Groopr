@@ -7,6 +7,7 @@ public class GroupCompositionScorer(List<IScorer> scorers)
 {
     public GroupComposition Score(GroupComposition composition)
     {
-        throw new NotImplementedException();
+        double totalScore = scorers.Sum(scorer => scorer.Evaluate(composition));
+        return composition with { TotalScore = totalScore };
     }
 }
