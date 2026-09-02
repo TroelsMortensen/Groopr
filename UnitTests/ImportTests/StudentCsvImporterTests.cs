@@ -32,6 +32,9 @@ public class StudentCsvImporterTests
         Assert.Equal("100003", studentList.Students[2].Number);
         Assert.Null(studentList.Students[2].Name);
         Assert.Empty(studentList.Students[2].PositiveWishes);
+        Assert.Empty(studentList.Students[0].PreviousGroupMembers);
+        Assert.Empty(studentList.Students[1].PreviousGroupMembers);
+        Assert.Empty(studentList.Students[2].PreviousGroupMembers);
     }
 
     [Fact]
@@ -212,7 +215,71 @@ public class StudentCsvImporterTests
 
         StudentCsvImportException exception = Assert.Throws<StudentCsvImportException>(() => Import(csv));
 
-        Assert.Contains("Unexpected columns", exception.Message);
+        Assert.Contains("Unexpected column", exception.Message);
+    }
+
+    #endregion
+
+    #region Previous group members (optional column)
+
+    [Fact]
+    public void Import_WithPreviousGroupMembersColumn_ParsesPreviousGroupMembers()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes,PreviousGroupMembers
+            100001,Alice,"100002, 100003","100002, 100003"
+            100002,Bob,100001,100001
+            100003,,,
+            """;
+
+        StudentList studentList = Import(csv);
+
+        Assert.Equal(["100002", "100003"], studentList.Students[0].PreviousGroupMembers.Select(m => m.Value));
+        Assert.Equal(["100001"], studentList.Students[1].PreviousGroupMembers.Select(m => m.Value));
+        Assert.Empty(studentList.Students[2].PreviousGroupMembers);
+    }
+
+    [Fact]
+    public void Import_WithoutPreviousGroupMembersColumn_LeavesPreviousGroupMembersEmpty()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes
+            100001,Alice,100002
+            100002,Bob,
+            """;
+
+        StudentList studentList = Import(csv);
+
+        Assert.Empty(studentList.Students[0].PreviousGroupMembers);
+        Assert.Empty(studentList.Students[1].PreviousGroupMembers);
+    }
+
+    [Fact]
+    public void Import_WithSelfPreviousGroupMember_ThrowsWithRowNumber()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes,PreviousGroupMembers
+            100001,Alice,,100001
+            """;
+
+        StudentCsvImportException exception = Assert.Throws<StudentCsvImportException>(() => Import(csv));
+
+        Assert.Equal(2, exception.RowNumber);
+        Assert.Contains("cannot be in their list of wishes", exception.Message);
+    }
+
+    [Fact]
+    public void Import_WithPreviousGroupMemberForNonExistentStudent_ThrowsStudentCsvImportException()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes,PreviousGroupMembers
+            100001,Alice,,999999
+            """;
+
+        StudentCsvImportException exception = Assert.Throws<StudentCsvImportException>(() => Import(csv));
+
+        Assert.Contains("999999", exception.Message);
+        Assert.Contains("previous group member", exception.Message);
     }
 
     #endregion

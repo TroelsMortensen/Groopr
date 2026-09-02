@@ -34,6 +34,9 @@ public partial class StudentDataViewModel : ViewModelBase
     public partial string FormPositiveWishes { get; set; } = string.Empty;
 
     [ObservableProperty]
+    public partial string FormPreviousGroupMembers { get; set; } = string.Empty;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEditPanelVisible))]
     public partial StudentEntryViewModel? SelectedStudent { get; set; }
 
@@ -45,6 +48,9 @@ public partial class StudentDataViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string EditPositiveWishes { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string EditPreviousGroupMembers { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = string.Empty;
@@ -120,7 +126,8 @@ public partial class StudentDataViewModel : ViewModelBase
 
         var number = EditNumber.Trim();
         var name = string.IsNullOrWhiteSpace(EditName) ? null : EditName.Trim();
-        var wishes = ParseWishes(EditPositiveWishes);
+        var wishes = ParseStudentNumbers(EditPositiveWishes);
+        var previousGroupMembers = ParseStudentNumbers(EditPreviousGroupMembers);
 
         if (Students.Any(s => s != SelectedStudent && s.Number == number))
         {
@@ -131,6 +138,7 @@ public partial class StudentDataViewModel : ViewModelBase
         SelectedStudent.Number = number;
         SelectedStudent.Name = name;
         SelectedStudent.PositiveWishes = wishes;
+        SelectedStudent.PreviousGroupMembers = previousGroupMembers;
 
         SortStudents();
         CancelEdit();
@@ -149,7 +157,8 @@ public partial class StudentDataViewModel : ViewModelBase
 
         var number = FormNumber.Trim();
         var name = string.IsNullOrWhiteSpace(FormName) ? null : FormName.Trim();
-        var wishes = ParseWishes(FormPositiveWishes);
+        var wishes = ParseStudentNumbers(FormPositiveWishes);
+        var previousGroupMembers = ParseStudentNumbers(FormPreviousGroupMembers);
 
         if (Students.Any(s => s.Number == number))
         {
@@ -172,6 +181,7 @@ public partial class StudentDataViewModel : ViewModelBase
             Number = number,
             Name = name,
             PositiveWishes = wishes,
+            PreviousGroupMembers = previousGroupMembers,
         });
 
         SortStudents();
@@ -285,6 +295,7 @@ public partial class StudentDataViewModel : ViewModelBase
         EditNumber = entry.Number;
         EditName = entry.Name ?? string.Empty;
         EditPositiveWishes = string.Join(", ", entry.PositiveWishes);
+        EditPreviousGroupMembers = string.Join(", ", entry.PreviousGroupMembers);
     }
 
     private void CancelEdit()
@@ -293,6 +304,7 @@ public partial class StudentDataViewModel : ViewModelBase
         EditNumber = string.Empty;
         EditName = string.Empty;
         EditPositiveWishes = string.Empty;
+        EditPreviousGroupMembers = string.Empty;
     }
 
     private void ClearForm()
@@ -300,6 +312,7 @@ public partial class StudentDataViewModel : ViewModelBase
         FormNumber = string.Empty;
         FormName = string.Empty;
         FormPositiveWishes = string.Empty;
+        FormPreviousGroupMembers = string.Empty;
     }
 
     private void ClearStatus()
@@ -314,7 +327,7 @@ public partial class StudentDataViewModel : ViewModelBase
 
     private void ShowError(string message) => _ = _dialogService.ShowErrorAsync(message);
 
-    private static List<string> ParseWishes(string input) =>
+    private static List<string> ParseStudentNumbers(string input) =>
         input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(static s => s.Length > 0)
             .ToList();

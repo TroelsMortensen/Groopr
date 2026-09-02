@@ -10,7 +10,12 @@ public class MaxNumberOfStudentsFromPreviousGroup(int numberOfStudents) : IInval
             // Keep the hashset for O(1) lookups per group
             var memberNumbers = group.Members.Select(m => m.Number).ToHashSet();
 
-            return group.Members.Any(student =>
+            bool any = group.Members.Any(student =>
                 student.PreviousGroupMembers.Count(pm => memberNumbers.Contains(pm.Value)) > numberOfStudents);
+            if (any)
+            {
+                ;
+            }
+            return any;
         });
 }

@@ -16,6 +16,9 @@ public partial class StudentEntryViewModel : ViewModelBase
     [ObservableProperty]
     public partial List<string> PositiveWishes { get; set; } = [];
 
+    [ObservableProperty]
+    public partial List<string> PreviousGroupMembers { get; set; } = [];
+
     public string DisplayLabel =>
         string.IsNullOrWhiteSpace(Name) ? $"#{Number}" : $"#{Number} - {Name}";
 
@@ -23,12 +26,13 @@ public partial class StudentEntryViewModel : ViewModelBase
 
     partial void OnNameChanged(string? value) => OnPropertyChanged(nameof(DisplayLabel));
 
-    public Student ToStudent() => Student.Create(Number, PositiveWishes, Name);
+    public Student ToStudent() => Student.Create(Number, PositiveWishes, Name, PreviousGroupMembers);
 
     public static StudentEntryViewModel FromStudent(Student student) => new()
     {
         Number = student.Number,
         Name = student.Name,
         PositiveWishes = student.PositiveWishes.Select(number => number.Value).ToList(),
+        PreviousGroupMembers = student.PreviousGroupMembers.Select(number => number.Value).ToList(),
     };
 }

@@ -9,6 +9,9 @@ public sealed class StudentCsvImporter
 {
     private static readonly string[] RequiredHeaders = ["StudentNumber", "Name", "PositiveWishes"];
 
+    private static readonly string[] AllowedHeaders =
+        ["StudentNumber", "Name", "PositiveWishes", "PreviousGroupMembers"];
+
     public StudentList Import(TextReader reader)
     {
         var config = new CsvConfiguration(CultureInfo.InvariantCulture)
@@ -61,6 +64,7 @@ public sealed class StudentCsvImporter
         }
 
         var headerSet = new HashSet<string>(headers, StringComparer.OrdinalIgnoreCase);
+        var allowedSet = new HashSet<string>(AllowedHeaders, StringComparer.OrdinalIgnoreCase);
 
         foreach (var required in RequiredHeaders)
         {
@@ -70,10 +74,13 @@ public sealed class StudentCsvImporter
             }
         }
 
-        if (headers.Length != RequiredHeaders.Length)
+        foreach (var header in headers)
         {
-            throw new StudentCsvImportException(
-                $"Unexpected columns in header. Expected: {string.Join(", ", RequiredHeaders)}.");
+            if (!allowedSet.Contains(header.Trim()))
+            {
+                throw new StudentCsvImportException(
+                    $"Unexpected column '{header.Trim()}'. Allowed columns: {string.Join(", ", AllowedHeaders)}.");
+            }
         }
     }
 
@@ -100,9 +107,11 @@ public sealed class StudentCsvImporter
 
             var nameField = GetField(csv, columnIndexes, "Name");
             var name = string.IsNullOrWhiteSpace(nameField) ? null : nameField.Trim();
-            var wishes = ParseWishes(GetField(csv, columnIndexes, "PositiveWishes"));
+            var wishes = ParseStudentNumbers(GetField(csv, columnIndexes, "PositiveWishes"));
+            var previousGroupMembers = ParseStudentNumbers(
+                GetOptionalField(csv, columnIndexes, "PreviousGroupMembers"));
 
-            return Student.Create(number.Trim(), wishes, name);
+            return Student.Create(number.Trim(), wishes, name, previousGroupMembers);
         }
         catch (StudentCsvImportException)
         {
@@ -124,7 +133,13 @@ public sealed class StudentCsvImporter
         return csv.GetField(index);
     }
 
-    private static List<string> ParseWishes(string? input) =>
+    private static string? GetOptionalField(
+        CsvReader csv,
+        IReadOnlyDictionary<string, int> columnIndexes,
+        string columnName) =>
+        columnIndexes.TryGetValue(columnName, out var index) ? csv.GetField(index) : null;
+
+    private static List<string> ParseStudentNumbers(string? input) =>
         (input ?? string.Empty)
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Where(static s => s.Length > 0)

@@ -5,12 +5,14 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using AvaloniaUI.Data;
+using AvaloniaUI.Data.InvalidationConfiguration;
 using AvaloniaUI.Data.ScoringConfiguration;
 using AvaloniaUI.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Logic.Grouping;
 using Logic.Grouping.Generation;
+using Logic.Grouping.Invalidation;
 using Logic.Grouping.Scoring;
 using Logic.Models;
 
@@ -25,6 +27,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     private readonly IDialogService _dialogService;
     private readonly Action _navigateBack;
     private readonly GroupCompositionScorer _scorer;
+    private readonly GroupCompositionInvalidator _invalidator;
     private readonly RandomShuffleStrategy _producer;
     private readonly TopCompositionKeeper _keeper = new();
     private readonly DispatcherTimer _uiRefreshTimer;
@@ -57,7 +60,8 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
                 Student.Create("100003", Array.Empty<string>())
             ]),
             GroupSizeDistribution = GroupSizeDistribution.Create([2, 1], 3),
-            EnabledScorers = [MutualMatchScoringConfiguration.Create(1)]
+            EnabledScorers = [MutualMatchScoringConfiguration.Create(1)],
+            EnabledInvalidators = []
         },
         new NullDialogService(),
         static () => { })
@@ -83,6 +87,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         }
 
         _scorer = ScorerConfigurationMapper.ToScorer(inputConfiguration.EnabledScorers);
+        _invalidator = InvalidatorConfigurationMapper.ToInvalidator(inputConfiguration.EnabledInvalidators);
         _producer = new RandomShuffleStrategy(studentList, groupSizeDistribution);
 
         _uiRefreshTimer = new DispatcherTimer
@@ -196,14 +201,21 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var scoredComposition = _scorer.Score(rawComposition);
             var count = Interlocked.Increment(ref _generatedCount);
-            _keeper.TryAdd(scoredComposition);
-
             if (count % YieldEveryIterations == 0)
             {
                 await Task.Delay(1, cancellationToken);
             }
+            
+            if (_invalidator.ShouldReject(rawComposition))
+            {
+                  continue;
+            }
+
+            var scoredComposition = _scorer.Score(rawComposition);
+            _keeper.TryAdd(scoredComposition);
+
+
         }
     }
 

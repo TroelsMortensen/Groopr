@@ -110,6 +110,35 @@ public class StudentListTests
 
     #endregion
 
+    #region Previous group member references
+
+    [Fact]
+    public void Create_WithValidPreviousGroupMemberReferences_ReturnsStudentList()
+    {
+        StudentList studentList = CreateList(
+            MakeStudentWithPreviousGroup("100001", previousGroupMembers: ["100002", "100003"]),
+            MakeStudentWithPreviousGroup("100002", previousGroupMembers: ["100001"]),
+            MakeStudent("100003"));
+
+        Assert.Equal(3, studentList.Students.Count);
+        Assert.Equal(["100002", "100003"], studentList.Students[0].PreviousGroupMembers.Select(m => m.Value));
+    }
+
+    [Fact]
+    public void Create_WithPreviousGroupMemberNotInList_ThrowsArgumentException()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            CreateList(
+                MakeStudentWithPreviousGroup("100001", previousGroupMembers: ["999999"]),
+                MakeStudent("100002"),
+                MakeStudent("100003")));
+
+        Assert.Contains("100001", exception.Message);
+        Assert.Contains("previous group member", exception.Message);
+    }
+
+    #endregion
+
     #region Duplicate student numbers
 
     [Fact]
@@ -213,6 +242,15 @@ public class StudentListTests
 
     private static Student MakeStudent(string number, params string[] positiveWishes)
         => Logic.Models.Student.Create(number, Wishes(positiveWishes));
+
+    private static Student MakeStudentWithPreviousGroup(
+        string number,
+        string[]? positiveWishes = null,
+        string[]? previousGroupMembers = null)
+        => Logic.Models.Student.Create(
+            number,
+            positiveWishes ?? [],
+            previousGroupMembers: previousGroupMembers ?? []);
 
     private static StudentList CreateList(params Student[] students)
         => StudentList.Create(students.ToList());

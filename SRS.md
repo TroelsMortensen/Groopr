@@ -33,7 +33,12 @@ Conceptual Architecture of the Grouping Engine
     - Mutual matches
     - Partial matches
 
-### 4. The Generation & Search Loop (The "Dinner" Engine)
+### 4. Invalidation rules configuration
+- The user will be able to configure the invalidation rules. These are rules that will reject a group composition before it is scored.
+- Currently, there is one invalidation rule:
+    - Max number of students from previous group
+
+### 5. The Generation & Search Loop (The "Dinner" Engine)
 - Because your scale is capped around 45 students and you are happy to let a random search run for a few minutes, a Monte Carlo / Random Sampling with Elitism approach fits your workflow perfectly:
 - The Generator: Randomly shuffles the student pool and slots them into the structural template blueprint.
 - The Gatekeeper (Hard Rejects): Before spending time calculating a score, the candidate composition passes through all active hard constraints (e.g., "Are any blacklisted students in the same group?"). If it fails, it is immediately thrown out.
