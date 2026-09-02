@@ -119,6 +119,43 @@ public class TopCompositionKeeperTests
 
     #endregion
 
+    #region Revision
+
+    [Fact]
+    public void TryAdd_IncrementsRevision()
+    {
+        var keeper = new TopCompositionKeeper();
+
+        keeper.TryAdd(Composition(1));
+        keeper.TryAdd(Composition(2));
+
+        Assert.Equal(2, keeper.Revision);
+    }
+
+    [Fact]
+    public void TryAdd_Rejected_DoesNotIncrementRevision()
+    {
+        var keeper = new TopCompositionKeeper(1);
+        keeper.TryAdd(Composition(10));
+
+        Assert.False(keeper.TryAdd(Composition(5)));
+
+        Assert.Equal(1, keeper.Revision);
+    }
+
+    [Fact]
+    public void Clear_ResetsRevision()
+    {
+        var keeper = new TopCompositionKeeper();
+        keeper.TryAdd(Composition(1));
+
+        keeper.Clear();
+
+        Assert.Equal(0, keeper.Revision);
+    }
+
+    #endregion
+
     private static GroupComposition Composition(double score) =>
         new([new Group([])], score);
 }

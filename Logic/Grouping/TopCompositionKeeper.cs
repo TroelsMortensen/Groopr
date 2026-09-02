@@ -11,13 +11,15 @@ public class TopCompositionKeeper(int capacity = 5)
 
     public DateTime? LastInsertedAt { get; private set; }
 
+    public long Revision { get; private set; }
+
     public bool TryAdd(GroupComposition composition)
     {
         if (_compositions.Count < _capacity)
         {
             _compositions.Add(composition);
             SortDescending();
-            LastInsertedAt = DateTime.UtcNow;
+            RecordInsertion();
             return true;
         }
 
@@ -30,7 +32,7 @@ public class TopCompositionKeeper(int capacity = 5)
         _compositions.RemoveAt(_compositions.Count - 1);
         _compositions.Add(composition);
         SortDescending();
-        LastInsertedAt = DateTime.UtcNow;
+        RecordInsertion();
         return true;
     }
 
@@ -38,6 +40,13 @@ public class TopCompositionKeeper(int capacity = 5)
     {
         _compositions.Clear();
         LastInsertedAt = null;
+        Revision = 0;
+    }
+
+    private void RecordInsertion()
+    {
+        LastInsertedAt = DateTime.UtcNow;
+        Revision++;
     }
 
     private void SortDescending() =>

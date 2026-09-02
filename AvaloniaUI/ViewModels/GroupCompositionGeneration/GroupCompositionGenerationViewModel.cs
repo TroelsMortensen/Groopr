@@ -18,16 +18,21 @@ namespace AvaloniaUI.ViewModels.GroupCompositionGeneration;
 
 public partial class GroupCompositionGenerationViewModel : ViewModelBase
 {
+    private const int UiRefreshIntervalMs = 250;
+    private const int YieldEveryIterations = 1000;
+
     private readonly InputConfiguration _inputConfiguration;
     private readonly IDialogService _dialogService;
     private readonly Action _navigateBack;
     private readonly GroupCompositionScorer _scorer;
     private readonly RandomShuffleStrategy _producer;
     private readonly TopCompositionKeeper _keeper = new();
+    private readonly DispatcherTimer _uiRefreshTimer;
 
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _generationTask;
     private long _generatedCount;
+    private long _lastRenderedRevision;
 
     public ObservableCollection<GroupCompositionCardViewModel> TopCompositions { get; } = [];
 
@@ -79,6 +84,12 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
         _scorer = ScorerConfigurationMapper.ToScorer(inputConfiguration.EnabledScorers);
         _producer = new RandomShuffleStrategy(studentList, groupSizeDistribution);
+
+        _uiRefreshTimer = new DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(UiRefreshIntervalMs)
+        };
+        _uiRefreshTimer.Tick += OnUiRefreshTimerTick;
     }
 
     partial void OnIsGeneratingChanged(bool value) => OnPropertyChanged(nameof(GenerationButtonText));
@@ -130,6 +141,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         _cancellationTokenSource = new CancellationTokenSource();
         var cancellationToken = _cancellationTokenSource.Token;
         IsGenerating = true;
+        _uiRefreshTimer.Start();
 
         _generationTask = Task.Run(async () =>
         {
@@ -142,7 +154,9 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
             }
             finally
             {
-                await Dispatcher.UIThread.InvokeAsync(() => IsGenerating = false);
+                await Dispatcher.UIThread.InvokeAsync(
+                    () => IsGenerating = false,
+                    DispatcherPriority.Background);
             }
         }, cancellationToken);
     }
@@ -167,6 +181,9 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
             }
         }
 
+        StopUiRefreshTimer();
+        FlushUi();
+
         _cancellationTokenSource.Dispose();
         _cancellationTokenSource = null;
         _generationTask = null;
@@ -175,35 +192,42 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
     private async Task GenerationLoopAsync(CancellationToken cancellationToken)
     {
-        try
+        foreach (var rawComposition in _producer.GenerateStream(cancellationToken))
         {
-            foreach (var rawComposition in _producer.GenerateStream(cancellationToken))
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var scoredComposition = _scorer.Score(rawComposition);
+            var count = Interlocked.Increment(ref _generatedCount);
+            _keeper.TryAdd(scoredComposition);
+
+            if (count % YieldEveryIterations == 0)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
-                var scoredComposition = _scorer.Score(rawComposition);
-                var count = Interlocked.Increment(ref _generatedCount);
-                var topChanged = _keeper.TryAdd(scoredComposition);
-
-                if (topChanged || count % 100 == 0)
-                {
-                    await Dispatcher.UIThread.InvokeAsync(FlushUi);
-                }
+                await Task.Delay(1, cancellationToken);
             }
         }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            await Dispatcher.UIThread.InvokeAsync(FlushUi);
-            throw;
-        }
     }
+
+    private void OnUiRefreshTimerTick(object? sender, EventArgs e) =>
+        Dispatcher.UIThread.InvokeAsync(FlushUi, DispatcherPriority.Background);
 
     private void FlushUi()
     {
         GeneratedCount = _generatedCount;
+
+        if (_keeper.Revision == _lastRenderedRevision)
+        {
+            return;
+        }
+
         LastTopCompositionInsertedText = _keeper.LastInsertedAt is { } insertedAt
             ? insertedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture)
             : string.Empty;
+        RebuildTopCompositions();
+        _lastRenderedRevision = _keeper.Revision;
+    }
+
+    private void RebuildTopCompositions()
+    {
         TopCompositions.Clear();
 
         foreach (var composition in _keeper.Compositions)
@@ -214,10 +238,20 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
     private void ClearGenerationState()
     {
+        StopUiRefreshTimer();
         _keeper.Clear();
         Interlocked.Exchange(ref _generatedCount, 0);
+        _lastRenderedRevision = 0;
         GeneratedCount = 0;
         LastTopCompositionInsertedText = string.Empty;
         TopCompositions.Clear();
+    }
+
+    private void StopUiRefreshTimer()
+    {
+        if (_uiRefreshTimer.IsEnabled)
+        {
+            _uiRefreshTimer.Stop();
+        }
     }
 }
