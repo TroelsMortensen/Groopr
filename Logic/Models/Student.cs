@@ -4,8 +4,8 @@ public class Student(
     string number,
     IReadOnlyList<StudentNumber> positiveWishes,
     string? name = null,
-    IReadOnlyList<StudentNumber>? previousGroupMembers = null
-    // more later
+    IReadOnlyList<StudentNumber>? previousGroupMembers = null,
+    IReadOnlyList<StudentNumber>? negativeWishes = null
 )
 {
     public StudentNumber StudentNumber { get; } = StudentNumber.Create(number); // yikes, feels bad, will improve...?
@@ -13,8 +13,8 @@ public class Student(
 
     public IReadOnlyList<StudentNumber> PositiveWishes { get; } = positiveWishes;
     public string? Name { get; } = name;
-    public IReadOnlyList<StudentNumber> PreviousGroupMembers { get; } =
-        previousGroupMembers ?? [];
+    public IReadOnlyList<StudentNumber> PreviousGroupMembers { get; } =previousGroupMembers ?? [];
+    public IReadOnlyList<StudentNumber> NegativeWishes { get; } = negativeWishes ?? [];
 
     private Student() : this("", [])
     {}
@@ -22,16 +22,21 @@ public class Student(
     public static Student Create(string number,
         IReadOnlyList<StudentNumber> positiveWishes,
         string? name = null,
-        IReadOnlyList<StudentNumber>? previousGroupMembers = null)
+        IReadOnlyList<StudentNumber>? previousGroupMembers = null,
+        IReadOnlyList<StudentNumber>? negativeWishes = null)
     {
         EnsureNoSelfReference(number, positiveWishes);
         EnsureNoSelfReference(number, previousGroupMembers);
-        EnsureNoDuplicateWishes(number, positiveWishes);
-        return new Student(number, positiveWishes, name, previousGroupMembers);
+        EnsureNoSelfReference(number, negativeWishes);
+        EnsureNoDuplicates(number, positiveWishes);
+        EnsureNoDuplicates(number, negativeWishes);
+        EnsureNoDuplicates(number, previousGroupMembers);
+        return new Student(number, positiveWishes, name, previousGroupMembers, negativeWishes);
     }
 
-    private static void EnsureNoDuplicateWishes(string selfNumber, IReadOnlyList<StudentNumber> positiveWishes)
+    private static void EnsureNoDuplicates(string selfNumber, IReadOnlyList<StudentNumber>? positiveWishes)
     {
+        if (positiveWishes == null) return;
         if (positiveWishes.Select(wish => wish.Value).Distinct().Count() != positiveWishes.Count)
         {
             throw new ArgumentException($"The student with number {selfNumber} cannot wish the same person twice.");
