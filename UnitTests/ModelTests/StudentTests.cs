@@ -206,6 +206,98 @@ public class StudentTests
 
     #endregion
 
+    #region Negative wishes
+
+    [Fact]
+    public void Create_WithNegativeWishes_ReturnsStudentWithNegativeWishes()
+    {
+        IReadOnlyList<StudentNumber> negativeWishes = Wishes("100002", "100003");
+
+        Student student = Student.Create("100001", EmptyWishes, negativeWishes: negativeWishes);
+
+        Assert.Equal(["100002", "100003"], student.NegativeWishes.Select(wish => wish.Value));
+    }
+
+    [Fact]
+    public void Create_WithNullNegativeWishes_ReturnsStudentWithEmptyNegativeWishes()
+    {
+        Student student = Student.Create("100001", EmptyWishes, negativeWishes: null);
+
+        Assert.Empty(student.NegativeWishes);
+    }
+
+    [Fact]
+    public void Create_WithOmittedNegativeWishes_ReturnsStudentWithEmptyNegativeWishes()
+    {
+        Student student = Student.Create("100001", EmptyWishes);
+
+        Assert.Empty(student.NegativeWishes);
+    }
+
+    [Fact]
+    public void Create_WithSelfInNegativeWishes_ThrowsArgumentException()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            Student.Create("100001", EmptyWishes, negativeWishes: Wishes("100001")));
+
+        Assert.Contains("100001", exception.Message);
+    }
+
+    [Fact]
+    public void Create_WithSelfInNegativeWishesAmongValidOnes_ThrowsArgumentException()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            Student.Create("100001", EmptyWishes, negativeWishes: Wishes("100002", "100001", "100003")));
+
+        Assert.Contains("100001", exception.Message);
+    }
+
+    [Fact]
+    public void Create_WithDuplicateNegativeWishes_ThrowsArgumentException()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            Student.Create("100001", EmptyWishes, negativeWishes: Wishes("100002", "100002")));
+
+        Assert.Contains("100001", exception.Message);
+    }
+
+    [Fact]
+    public void Create_WithDuplicateNegativeWishesAmongValidOnes_ThrowsArgumentException()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            Student.Create("100001", EmptyWishes, negativeWishes: Wishes("100002", "100003", "100002")));
+
+        Assert.Contains("100001", exception.Message);
+    }
+
+    [Fact]
+    public void Create_WithSameNumberInPositiveAndNegativeWishes_ThrowsArgumentException()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            Student.Create(
+                "100001",
+                Wishes("100002"),
+                negativeWishes: Wishes("100002")));
+
+        Assert.Contains("100001", exception.Message);
+        Assert.Contains("positive and negative", exception.Message);
+    }
+
+    [Fact]
+    public void Create_WithOverlapAmongOtherValidWishes_ThrowsArgumentException()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            Student.Create(
+                "100001",
+                Wishes("100002", "100003"),
+                negativeWishes: Wishes("100004", "100003")));
+
+        Assert.Contains("100001", exception.Message);
+        Assert.Contains("positive and negative", exception.Message);
+    }
+
+    #endregion
+
     #region Helpers
 
     private static IReadOnlyList<StudentNumber> Wishes(params string[] numbers)

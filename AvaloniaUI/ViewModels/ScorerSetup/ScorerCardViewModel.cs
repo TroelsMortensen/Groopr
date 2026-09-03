@@ -5,7 +5,8 @@ namespace AvaloniaUI.ViewModels.ScorerSetup;
 public enum ScorerKind
 {
     MutualMatch,
-    PartialMatch
+    PartialMatch,
+    NegativeMatch
 }
 
 public partial class ScorerCardViewModel : ObservableObject

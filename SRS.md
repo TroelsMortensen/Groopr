@@ -29,9 +29,10 @@ Conceptual Architecture of the Grouping Engine
 
 ### 3. Scoring rules configuration
 - The user will be able to configure the scoring rules.
-- Currently, there are two scoring rules:
+- Currently, there are three scoring rules:
     - Mutual matches
     - Partial matches
+    - Negative matches (subtracts points when students who listed each other as negative wishes (not necessarily a mutual negative wish) are placed in the same group)
 
 ### 4. Invalidation rules configuration
 - The user will be able to configure the invalidation rules. These are rules that will reject a group composition before it is scored.

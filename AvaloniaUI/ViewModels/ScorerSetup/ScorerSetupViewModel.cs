@@ -48,8 +48,14 @@ public partial class ScorerSetupViewModel : ViewModelBase
             "Partial matches",
             "Score one-way positive wishes when both students are in the same group, even if the wish is not mutual.");
 
+        var negativeCard = new ScorerCardViewModel(
+            ScorerKind.NegativeMatch,
+            "Negative matches",
+            "Subtract this many points from the group composition score for each negative wish between students placed in the same group.");
+
         ScorerCards.Add(mutualCard);
         ScorerCards.Add(partialCard);
+        ScorerCards.Add(negativeCard);
 
         RestoreFromConfiguration();
     }
@@ -119,6 +125,9 @@ public partial class ScorerSetupViewModel : ViewModelBase
                 case PartialMatchScoringConfiguration partial:
                     ApplySavedConfiguration(ScorerKind.PartialMatch, partial.Weight);
                     break;
+                case NegativeMatchScoringConfiguration negative:
+                    ApplySavedConfiguration(ScorerKind.NegativeMatch, negative.Weight);
+                    break;
             }
         }
     }
@@ -143,6 +152,7 @@ public partial class ScorerSetupViewModel : ViewModelBase
         {
             ScorerKind.MutualMatch => MutualMatchScoringConfiguration.Create(weight),
             ScorerKind.PartialMatch => PartialMatchScoringConfiguration.Create(weight),
+            ScorerKind.NegativeMatch => NegativeMatchScoringConfiguration.Create(weight),
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown scorer kind.")
         };
 

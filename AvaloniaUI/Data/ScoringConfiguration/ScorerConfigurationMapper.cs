@@ -20,6 +20,7 @@ public static class ScorerConfigurationMapper
         {
             MutualMatchScoringConfiguration mutual => new MutualMatch(mutual.Weight),
             PartialMatchScoringConfiguration partial => new PartialMatch(partial.Weight),
+            NegativeMatchScoringConfiguration negative => new NegativeMatch(negative.Weight),
             _ => throw new ArgumentOutOfRangeException(nameof(configuration), configuration, "Unknown scorer configuration.")
         };
 }

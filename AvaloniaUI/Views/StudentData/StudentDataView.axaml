@@ -114,6 +114,12 @@
                                      PlaceholderText="e.g. 2, 5, 12" />
                         </StackPanel>
 
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Negative Wishes (comma-separated, optional)" />
+                            <TextBox Text="{Binding EditNegativeWishes}"
+                                     PlaceholderText="e.g. 2, 5, 12" />
+                        </StackPanel>
+
                         <Button Content="Save Changes"
                                 HorizontalAlignment="Left"
                                 Command="{Binding SaveChangesCommand}" />
@@ -146,6 +152,12 @@
                         <StackPanel Spacing="4">
                             <TextBlock Text="Previous Group Members (comma-separated, optional)" />
                             <TextBox Text="{Binding FormPreviousGroupMembers}"
+                                     PlaceholderText="e.g. 2, 5, 12" />
+                        </StackPanel>
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="Negative Wishes (comma-separated, optional)" />
+                            <TextBox Text="{Binding FormNegativeWishes}"
                                      PlaceholderText="e.g. 2, 5, 12" />
                         </StackPanel>
 

@@ -10,7 +10,7 @@ public sealed class StudentCsvImporter
     private static readonly string[] RequiredHeaders = ["StudentNumber", "Name", "PositiveWishes"];
 
     private static readonly string[] AllowedHeaders =
-        ["StudentNumber", "Name", "PositiveWishes", "PreviousGroupMembers"];
+        ["StudentNumber", "Name", "PositiveWishes", "PreviousGroupMembers", "NegativeWishes"];
 
     public StudentList Import(TextReader reader)
     {
@@ -110,8 +110,15 @@ public sealed class StudentCsvImporter
             var wishes = ParseStudentNumbers(GetField(csv, columnIndexes, "PositiveWishes"));
             var previousGroupMembers = ParseStudentNumbers(
                 GetOptionalField(csv, columnIndexes, "PreviousGroupMembers"));
+            var negativeWishes = ParseStudentNumbers(
+                GetOptionalField(csv, columnIndexes, "NegativeWishes"));
 
-            return Student.Create(number.Trim(), wishes, name, previousGroupMembers);
+            return Student.Create(
+                number.Trim(),
+                wishes.Select(StudentNumber.Create).ToList(),
+                name,
+                previousGroupMembers.Select(StudentNumber.Create).ToList(),
+                negativeWishes.Select(StudentNumber.Create).ToList());
         }
         catch (StudentCsvImportException)
         {

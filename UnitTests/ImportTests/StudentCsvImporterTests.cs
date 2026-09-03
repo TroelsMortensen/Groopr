@@ -284,6 +284,100 @@ public class StudentCsvImporterTests
 
     #endregion
 
+    #region Negative wishes (optional column)
+
+    [Fact]
+    public void Import_WithNegativeWishesColumn_ParsesNegativeWishes()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes,NegativeWishes
+            100001,Alice,,"100002, 100003"
+            100002,Bob,,100001
+            100003,,,
+            """;
+
+        StudentList studentList = Import(csv);
+
+        Assert.Equal(["100002", "100003"], studentList.Students[0].NegativeWishes.Select(m => m.Value));
+        Assert.Equal(["100001"], studentList.Students[1].NegativeWishes.Select(m => m.Value));
+        Assert.Empty(studentList.Students[2].NegativeWishes);
+    }
+
+    [Fact]
+    public void Import_WithoutNegativeWishesColumn_LeavesNegativeWishesEmpty()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes
+            100001,Alice,100002
+            100002,Bob,
+            """;
+
+        StudentList studentList = Import(csv);
+
+        Assert.Empty(studentList.Students[0].NegativeWishes);
+        Assert.Empty(studentList.Students[1].NegativeWishes);
+    }
+
+    [Fact]
+    public void Import_WithSelfNegativeWish_ThrowsWithRowNumber()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes,NegativeWishes
+            100001,Alice,,100001
+            """;
+
+        StudentCsvImportException exception = Assert.Throws<StudentCsvImportException>(() => Import(csv));
+
+        Assert.Equal(2, exception.RowNumber);
+        Assert.Contains("cannot be in their list of wishes", exception.Message);
+    }
+
+    [Fact]
+    public void Import_WithDuplicateNegativeWishWithinRow_ThrowsWithRowNumber()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes,NegativeWishes
+            100001,Alice,,"100002, 100002"
+            100002,Bob,,
+            """;
+
+        StudentCsvImportException exception = Assert.Throws<StudentCsvImportException>(() => Import(csv));
+
+        Assert.Equal(2, exception.RowNumber);
+        Assert.Contains("cannot wish the same person twice", exception.Message);
+    }
+
+    [Fact]
+    public void Import_WithPositiveAndNegativeWishOverlap_ThrowsWithRowNumber()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes,NegativeWishes
+            100001,Alice,100002,100002
+            100002,Bob,,
+            """;
+
+        StudentCsvImportException exception = Assert.Throws<StudentCsvImportException>(() => Import(csv));
+
+        Assert.Equal(2, exception.RowNumber);
+        Assert.Contains("positive and negative", exception.Message);
+    }
+
+    [Fact]
+    public void Import_WithNegativeWishForNonExistentStudent_ThrowsStudentCsvImportException()
+    {
+        const string csv = """
+            StudentNumber,Name,PositiveWishes,NegativeWishes
+            100001,Alice,,999999
+            """;
+
+        StudentCsvImportException exception = Assert.Throws<StudentCsvImportException>(() => Import(csv));
+
+        Assert.Contains("999999", exception.Message);
+        Assert.Contains("negative wish", exception.Message);
+    }
+
+    #endregion
+
     #region Helpers
 
     private StudentList Import(string csv) =>

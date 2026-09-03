@@ -37,6 +37,9 @@ public partial class StudentDataViewModel : ViewModelBase
     public partial string FormPreviousGroupMembers { get; set; } = string.Empty;
 
     [ObservableProperty]
+    public partial string FormNegativeWishes { get; set; } = string.Empty;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsEditPanelVisible))]
     public partial StudentEntryViewModel? SelectedStudent { get; set; }
 
@@ -51,6 +54,9 @@ public partial class StudentDataViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial string EditPreviousGroupMembers { get; set; } = string.Empty;
+
+    [ObservableProperty]
+    public partial string EditNegativeWishes { get; set; } = string.Empty;
 
     [ObservableProperty]
     public partial string StatusMessage { get; set; } = string.Empty;
@@ -128,6 +134,7 @@ public partial class StudentDataViewModel : ViewModelBase
         var name = string.IsNullOrWhiteSpace(EditName) ? null : EditName.Trim();
         var wishes = ParseStudentNumbers(EditPositiveWishes);
         var previousGroupMembers = ParseStudentNumbers(EditPreviousGroupMembers);
+        var negativeWishes = ParseStudentNumbers(EditNegativeWishes);
 
         if (Students.Any(s => s != SelectedStudent && s.Number == number))
         {
@@ -139,6 +146,7 @@ public partial class StudentDataViewModel : ViewModelBase
         SelectedStudent.Name = name;
         SelectedStudent.PositiveWishes = wishes;
         SelectedStudent.PreviousGroupMembers = previousGroupMembers;
+        SelectedStudent.NegativeWishes = negativeWishes;
 
         SortStudents();
         CancelEdit();
@@ -159,6 +167,7 @@ public partial class StudentDataViewModel : ViewModelBase
         var name = string.IsNullOrWhiteSpace(FormName) ? null : FormName.Trim();
         var wishes = ParseStudentNumbers(FormPositiveWishes);
         var previousGroupMembers = ParseStudentNumbers(FormPreviousGroupMembers);
+        var negativeWishes = ParseStudentNumbers(FormNegativeWishes);
 
         if (Students.Any(s => s.Number == number))
         {
@@ -182,6 +191,7 @@ public partial class StudentDataViewModel : ViewModelBase
             Name = name,
             PositiveWishes = wishes,
             PreviousGroupMembers = previousGroupMembers,
+            NegativeWishes = negativeWishes,
         });
 
         SortStudents();
@@ -296,6 +306,7 @@ public partial class StudentDataViewModel : ViewModelBase
         EditName = entry.Name ?? string.Empty;
         EditPositiveWishes = string.Join(", ", entry.PositiveWishes);
         EditPreviousGroupMembers = string.Join(", ", entry.PreviousGroupMembers);
+        EditNegativeWishes = string.Join(", ", entry.NegativeWishes);
     }
 
     private void CancelEdit()
@@ -305,6 +316,7 @@ public partial class StudentDataViewModel : ViewModelBase
         EditName = string.Empty;
         EditPositiveWishes = string.Empty;
         EditPreviousGroupMembers = string.Empty;
+        EditNegativeWishes = string.Empty;
     }
 
     private void ClearForm()
@@ -313,6 +325,7 @@ public partial class StudentDataViewModel : ViewModelBase
         FormName = string.Empty;
         FormPositiveWishes = string.Empty;
         FormPreviousGroupMembers = string.Empty;
+        FormNegativeWishes = string.Empty;
     }
 
     private void ClearStatus()

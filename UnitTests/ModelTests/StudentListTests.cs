@@ -139,6 +139,35 @@ public class StudentListTests
 
     #endregion
 
+    #region Negative wish references
+
+    [Fact]
+    public void Create_WithValidNegativeWishReferences_ReturnsStudentList()
+    {
+        StudentList studentList = CreateList(
+            MakeStudentWithNegativeWishes("100001", negativeWishes: ["100002", "100003"]),
+            MakeStudentWithNegativeWishes("100002", negativeWishes: ["100001"]),
+            MakeStudent("100003"));
+
+        Assert.Equal(3, studentList.Students.Count);
+        Assert.Equal(["100002", "100003"], studentList.Students[0].NegativeWishes.Select(m => m.Value));
+    }
+
+    [Fact]
+    public void Create_WithNegativeWishNotInList_ThrowsArgumentException()
+    {
+        ArgumentException exception = Assert.Throws<ArgumentException>(() =>
+            CreateList(
+                MakeStudentWithNegativeWishes("100001", negativeWishes: ["999999"]),
+                MakeStudent("100002"),
+                MakeStudent("100003")));
+
+        Assert.Contains("100001", exception.Message);
+        Assert.Contains("negative wish", exception.Message);
+    }
+
+    #endregion
+
     #region Duplicate student numbers
 
     [Fact]
@@ -251,6 +280,15 @@ public class StudentListTests
             number,
             positiveWishes ?? [],
             previousGroupMembers: previousGroupMembers ?? []);
+
+    private static Student MakeStudentWithNegativeWishes(
+        string number,
+        string[]? positiveWishes = null,
+        string[]? negativeWishes = null)
+        => Logic.Models.Student.Create(
+            number,
+            (positiveWishes ?? []).Select(StudentNumber.Create).ToArray(),
+            negativeWishes: (negativeWishes ?? []).Select(StudentNumber.Create).ToArray());
 
     private static StudentList CreateList(params Student[] students)
         => StudentList.Create(students.ToList());

@@ -50,6 +50,15 @@ public class StudentList(List<Student> students)
                         $"The student with number {student.Number} has a previous group member {previousGroupMember.Value}, who is not in the list.");
                 }
             }
+
+            foreach (StudentNumber negativeWish in student.NegativeWishes)
+            {
+                if (!studentNumbers.Contains(negativeWish.Value))
+                {
+                    errors.Add(
+                        $"The student with number {student.Number} has a negative wish for {negativeWish.Value}, who is not in the list.");
+                }
+            }
         }
 
         if (errors.Count > 0)

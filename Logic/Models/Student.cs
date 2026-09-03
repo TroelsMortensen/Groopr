@@ -31,6 +31,7 @@ public class Student(
         EnsureNoDuplicates(number, positiveWishes);
         EnsureNoDuplicates(number, negativeWishes);
         EnsureNoDuplicates(number, previousGroupMembers);
+        EnsureNoPositiveNegativeOverlap(number, positiveWishes, negativeWishes);
         return new Student(number, positiveWishes, name, previousGroupMembers, negativeWishes);
     }
 
@@ -49,6 +50,21 @@ public class Student(
         if (wishes.Any(wish => selfNumber.Equals(wish.Value)))
         {
             throw new ArgumentException($"The student with number {selfNumber} cannot be in their list of wishes.");
+        }
+    }
+
+    private static void EnsureNoPositiveNegativeOverlap(
+        string selfNumber,
+        IReadOnlyList<StudentNumber> positiveWishes,
+        IReadOnlyList<StudentNumber>? negativeWishes)
+    {
+        if (negativeWishes is null || negativeWishes.Count == 0) return;
+
+        HashSet<string> positiveValues = positiveWishes.Select(wish => wish.Value).ToHashSet();
+        if (negativeWishes.Any(wish => positiveValues.Contains(wish.Value)))
+        {
+            throw new ArgumentException(
+                $"The student with number {selfNumber} cannot list the same person in both positive and negative wishes.");
         }
     }
 
