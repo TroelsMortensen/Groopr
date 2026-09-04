@@ -10,6 +10,22 @@ Students provide various optional information:
 
 A GroupComposition is a list of groups, each with a list of students. This `GroupComposition` is eventually scored by the application, and the teacher will select the best one, after many iterations.
 
+### Valid GroupComposition (structural rules)
+
+A structurally valid GroupComposition is an exact partition of the student pool into the size blueprint:
+
+- The number of groups and each group's size must match the blueprint exactly (e.g. blueprint `[4, 4, 3]` → three groups of those sizes).
+- The sum of the blueprint sizes must equal the number of students.
+- Every student from the input pool appears in exactly one group (no missing students, no duplicates across groups).
+- Group members are students from that pool.
+- A freshly generated composition is unscored (`TotalScore` starts at 0) until it passes hard rejects and is evaluated by the scoring pipeline.
+
+These structural rules are distinct from configurable invalidation rules (hard rejects): a composition can be structurally valid and still be rejected before scoring (e.g. too many students from a previous group).
+
+### Equality of GroupCompositions
+
+Two GroupCompositions are considered the same if they contain the same groups of students by student number only (names, wishes, and score are ignored). Order of groups and order of students within each group do not matter.
+
 ## Tech stack
 
 - .NET 10
@@ -44,29 +60,19 @@ Conceptual Architecture of the Grouping Engine
 - The Generator: Randomly shuffles the student pool and slots them into the structural template blueprint.
 - The Gatekeeper (Hard Rejects): Before spending time calculating a score, the candidate composition passes through all active hard constraints (e.g., "Are any blacklisted students in the same group?"). If it fails, it is immediately thrown out.
 - The Evaluator (Scoring Pipeline): If it passes validation, it runs through your chain of active scoring rules (mutuals, partials, personality variety, etc.) to produce a final fitness score.
-- The Keeper (Elitism): The engine maintains a rolling "Top 5" list. If a newly generated valid composition beats the lowest score on the top-list, it replaces it. This runs continuously in a loop until you stop it.
+- The Keeper (Elitism): The engine maintains a rolling "Top 5" list. If a newly generated valid composition beats the lowest score on the top-list, it replaces it. If the composition is a duplicate of one already on the top-list (same student-number partition), it is rejected and not inserted—even if its score is higher. This runs continuously in a loop until you stop it.
 
 
 ## Tasks
 
-### Task 2 setup group generation UI
-- Start/stop button to start generating group compositions.
-- InputConfiguration is used to start the generation. 
-- The view keeps the top 5 group compositions, in five UI cards, stacked vertically. Each group composition shows its score.
-- When a better group composition is generated, the lowest scoring group composition is removed, and the new one is added to its place in the vertical list, which remains sorted by score, highest score on top.
+### Task 2 setup group generation UI updates
+- show last five timestamps for accepted group compositions
 
 ### Task 3 multithreading
 - Maybe....
 
 
 ### Task 3 Group composition Generation
-
-Put this behind an Iterable interface, so I can swap out how the group compositions are generated.
-
-#### Option 1: complete random - Done
-Randomly sort the list of student records, and pluck out a list of groups based on the group sizes.
-Randomize the list for each iteration.
-
 
 #### Option 2: Sliding window selection - TODO
 Randomly sort the list, create groups.

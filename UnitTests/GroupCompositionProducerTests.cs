@@ -411,7 +411,51 @@ public class GroupCompositionProducerTests
 
     #endregion
 
-    #region Composition shape
+    #region Structural validity (SRS)
+
+    [Theory]
+    [InlineData(new[] { 4, 4, 3 })]
+    [InlineData(new[] { 5, 5, 5 })]
+    [InlineData(new[] { 3 })]
+    [InlineData(new[] { 1, 1, 1 })]
+    [InlineData(new[] { 2, 2, 2, 2, 2 })]
+    [InlineData(new[] { 11, 12, 10 })]
+    public void GeneratedCompositions_AreStructurallyValid(int[] groupSizes)
+    {
+        var students = CreateStudents(groupSizes.Sum());
+        var strategy = CreateStrategy(students, groupSizes, IdentityShuffle);
+
+        foreach (GroupComposition composition in strategy.GenerateStream().Take(25))
+        {
+            AssertStructurallyValid(composition, students, groupSizes);
+        }
+    }
+
+    [Fact]
+    public void DefaultShuffler_ProducesStructurallyValidCompositions()
+    {
+        int[] groupSizes = [4, 4, 3];
+        var students = CreateStudents(11);
+        var strategy = CreateStrategy(students, groupSizes);
+
+        foreach (GroupComposition composition in strategy.GenerateStream().Take(50))
+        {
+            AssertStructurallyValid(composition, students, groupSizes);
+        }
+    }
+
+    [Fact]
+    public void RotatingShuffler_ProducesStructurallyValidCompositions()
+    {
+        int[] groupSizes = [4, 4, 3];
+        var students = CreateStudents(11);
+        var strategy = CreateStrategy(students, groupSizes, new RotatingShuffle().Invoke);
+
+        foreach (GroupComposition composition in strategy.GenerateStream().Take(25))
+        {
+            AssertStructurallyValid(composition, students, groupSizes);
+        }
+    }
 
     [Fact]
     public void GeneratedComposition_HasZeroTotalScore()
@@ -438,11 +482,7 @@ public class GroupCompositionProducerTests
 
         foreach (GroupComposition composition in strategy.GenerateStream().Take(20))
         {
-            Assert.Equal(groupSizes, composition.Groups.Select(group => group.Members.Count).ToArray());
-
-            string[] expected = students.Select(student => student.Number).OrderBy(number => number).ToArray();
-            string[] actual = Flatten(composition).OrderBy(number => number).ToArray();
-            Assert.Equal(expected, actual);
+            AssertStructurallyValid(composition, students, groupSizes);
         }
     }
 
@@ -504,6 +544,33 @@ public class GroupCompositionProducerTests
 
     private static IEnumerable<string> Flatten(GroupComposition composition)
         => composition.Groups.SelectMany(group => group.Members.Select(student => student.Number));
+
+    /// <summary>
+    /// Asserts all SRS structural rules for a valid GroupComposition.
+    /// </summary>
+    private static void AssertStructurallyValid(
+        GroupComposition composition,
+        IReadOnlyList<Student> students,
+        IReadOnlyList<int> groupSizes)
+    {
+        Assert.Equal(groupSizes.Sum(), students.Count);
+        Assert.Equal(groupSizes.Count, composition.Groups.Count);
+        Assert.Equal(groupSizes, composition.Groups.Select(group => group.Members.Count).ToArray());
+
+        List<Student> members = composition.Groups.SelectMany(group => group.Members).ToList();
+        Assert.Equal(students.Count, members.Count);
+        Assert.Equal(students.Count, members.Distinct().Count());
+        Assert.Equal(students.Count, members.Select(student => student.Number).Distinct().Count());
+
+        HashSet<Student> pool = students.ToHashSet();
+        Assert.All(members, member => Assert.Contains(member, pool));
+
+        string[] expectedNumbers = students.Select(student => student.Number).OrderBy(number => number).ToArray();
+        string[] actualNumbers = members.Select(student => student.Number).OrderBy(number => number).ToArray();
+        Assert.Equal(expectedNumbers, actualNumbers);
+
+        Assert.Equal(0, composition.TotalScore);
+    }
 
     private static bool CanBeDivided(int numberOfStudents, int[] priorities)
     {
