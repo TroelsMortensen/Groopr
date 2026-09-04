@@ -1,0 +1,6 @@
+- Greedy Group Composition algorithm
+  - Vælg een stud. Følg til  et ønske, følg igen til gruppe er fyldt. Tag ny tilfældig stud. Ved blindgyde, tag tilfældig stud. 
+- Test for IGroupCompositionGenerator, with nested sub classes per implementation
+- Benchmark tests per algorithm
+  - Time how long it takes to generate x groups.
+  - Put the scores into Dictionary<double, int>, i.e. <score, number of groups generated with that score>
