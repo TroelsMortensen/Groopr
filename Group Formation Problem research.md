@@ -1,0 +1,11 @@
+- https://link.springer.com/chapter/10.1007/978-3-319-11200-8_17
+- https://www.researchgate.net/publication/290767804_The_Group_Formation_Problem_An_Algorithmic_Approach_to_Learning_Group_Formation
+- https://osf.io/fspv3/files/s9tp4
+- https://help.feedbackfruits.com/hc/en-us/articles/23527084211346-Group-Formation-Algorithm-Explainer
+- https://ieeexplore.ieee.org/document/10056554
+- https://dl.acm.org/doi/10.1145/3448139.3448196
+- https://camp.cbmbc.org/docs/BSc_Project_Group_Formation_Algorithm.pdf
+- https://www.sciencedirect.com/science/article/abs/pii/S0360131511002284
+- https://library.apsce.net/index.php/ICCE/article/view/1011
+- https://www.academia.edu/1902919/A_Method_for_Group_Formation_Using_Genetic_Algorithm
+- https://en.wikipedia.org/wiki/Stable_roommates_problem
