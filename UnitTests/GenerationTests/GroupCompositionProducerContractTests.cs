@@ -496,3 +496,11 @@ public sealed class BreadthFirstGreedyStrategyContractTests : GroupCompositionPr
         GroupSizeDistribution groupSizes)
         => new BreadthFirstGreedyStrategy(students, groupSizes);
 }
+
+public sealed class DepthFirstGreedyStrategyContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new DepthFirstGreedyStrategy(students, groupSizes);
+}
