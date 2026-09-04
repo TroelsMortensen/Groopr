@@ -35,6 +35,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     private CancellationTokenSource? _cancellationTokenSource;
     private Task? _generationTask;
     private long _generatedCount;
+    private long _duplicateRejectedCount;
     private long _lastRenderedRevision;
 
     public ObservableCollection<GroupCompositionCardViewModel> TopCompositions { get; } = [];
@@ -44,6 +45,9 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
     [ObservableProperty]
     public partial long GeneratedCount { get; set; }
+
+    [ObservableProperty]
+    public partial long DuplicateRejectedCount { get; set; }
 
     [ObservableProperty]
     public partial string LastTopCompositionInsertedText { get; set; } = string.Empty;
@@ -213,9 +217,10 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
             }
 
             var scoredComposition = _scorer.Score(rawComposition);
-            _keeper.TryAdd(scoredComposition);
-
-
+            if (_keeper.TryAdd(scoredComposition) == TryAddResult.RejectedAsDuplicate)
+            {
+                Interlocked.Increment(ref _duplicateRejectedCount);
+            }
         }
     }
 
@@ -225,6 +230,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     private void FlushUi()
     {
         GeneratedCount = _generatedCount;
+        DuplicateRejectedCount = _duplicateRejectedCount;
 
         if (_keeper.Revision == _lastRenderedRevision)
         {
@@ -253,8 +259,10 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         StopUiRefreshTimer();
         _keeper.Clear();
         Interlocked.Exchange(ref _generatedCount, 0);
+        Interlocked.Exchange(ref _duplicateRejectedCount, 0);
         _lastRenderedRevision = 0;
         GeneratedCount = 0;
+        DuplicateRejectedCount = 0;
         LastTopCompositionInsertedText = string.Empty;
         TopCompositions.Clear();
     }

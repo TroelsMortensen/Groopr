@@ -2,6 +2,13 @@ using Logic.Models;
 
 namespace Logic.Grouping;
 
+public enum TryAddResult
+{
+    Added,
+    RejectedAsDuplicate,
+    RejectedScoreTooLow
+}
+
 public class TopCompositionKeeper(int capacity = 5)
 {
     private readonly List<GroupComposition> _compositions = [];
@@ -13,27 +20,32 @@ public class TopCompositionKeeper(int capacity = 5)
 
     public long Revision { get; private set; }
 
-    public bool TryAdd(GroupComposition composition)
+    public TryAddResult TryAdd(GroupComposition composition)
     {
+        if (_compositions.Contains(composition))
+        {
+            return TryAddResult.RejectedAsDuplicate;
+        }
+
         if (_compositions.Count < _capacity)
         {
             _compositions.Add(composition);
             SortDescending();
             RecordInsertion();
-            return true;
+            return TryAddResult.Added;
         }
 
         var lowestScore = _compositions[^1].TotalScore;
         if (composition.TotalScore <= lowestScore)
         {
-            return false;
+            return TryAddResult.RejectedScoreTooLow;
         }
 
         _compositions.RemoveAt(_compositions.Count - 1);
         _compositions.Add(composition);
         SortDescending();
         RecordInsertion();
-        return true;
+        return TryAddResult.Added;
     }
 
     public void Clear()

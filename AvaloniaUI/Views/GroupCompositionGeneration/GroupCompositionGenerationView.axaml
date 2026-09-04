@@ -42,6 +42,8 @@
             <TextBlock FontSize="14"
                        Text="{Binding GeneratedCount, StringFormat=Generated: {0:N0}}" />
             <TextBlock FontSize="14"
+                       Text="{Binding DuplicateRejectedCount, StringFormat=Duplicates rejected: {0:N0}}" />
+            <TextBlock FontSize="14"
                        Text="{Binding LastTopCompositionInsertedText, StringFormat=Last top-5 insertion: {0}}"
                        IsVisible="{Binding LastTopCompositionInsertedText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
