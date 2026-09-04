@@ -504,3 +504,19 @@ public sealed class DepthFirstGreedyStrategyContractTests : GroupCompositionProd
         GroupSizeDistribution groupSizes)
         => new DepthFirstGreedyStrategy(students, groupSizes);
 }
+
+public sealed class MutualPairFirstStrategyContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new MutualPairFirstStrategy(students, groupSizes);
+}
+
+public sealed class OrphanFirstStrategyContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new OrphanFirstStrategy(students, groupSizes);
+}

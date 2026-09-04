@@ -30,6 +30,9 @@ var strategies = new List<(string Name, IGroupCompositionProducer Producer)>
 {
     ("RandomShuffle", new RandomShuffleStrategy(students, sizes)),
     ("BreadthFirstGreedy", new BreadthFirstGreedyStrategy(students, sizes)),
+    ("DepthFirstGreedy", new DepthFirstGreedyStrategy(students, sizes)),
+    ("MutualPairFirst", new MutualPairFirstStrategy(students, sizes)),
+    ("OrphanFirst", new OrphanFirstStrategy(students, sizes)),
 };
 
 PrintHeader(fixtureName, students, sizes, Generations);
