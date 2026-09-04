@@ -40,6 +40,8 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
     public ObservableCollection<GroupCompositionCardViewModel> TopCompositions { get; } = [];
 
+    public ObservableCollection<string> RecentTopCompositionInsertedTexts { get; } = [];
+
     [ObservableProperty]
     public partial bool IsGenerating { get; set; }
 
@@ -50,7 +52,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     public partial long DuplicateRejectedCount { get; set; }
 
     [ObservableProperty]
-    public partial string LastTopCompositionInsertedText { get; set; } = string.Empty;
+    public partial bool HasRecentInsertions { get; set; }
 
     public string GenerationButtonText => IsGenerating ? "Stop" : "Start";
 
@@ -237,11 +239,21 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
             return;
         }
 
-        LastTopCompositionInsertedText = _keeper.LastInsertedAt is { } insertedAt
-            ? insertedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture)
-            : string.Empty;
+        RebuildRecentInsertions();
         RebuildTopCompositions();
         _lastRenderedRevision = _keeper.Revision;
+    }
+
+    private void RebuildRecentInsertions()
+    {
+        RecentTopCompositionInsertedTexts.Clear();
+        foreach (var insertedAt in _keeper.RecentInsertedAt)
+        {
+            RecentTopCompositionInsertedTexts.Add(
+                insertedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.CurrentCulture));
+        }
+
+        HasRecentInsertions = RecentTopCompositionInsertedTexts.Count > 0;
     }
 
     private void RebuildTopCompositions()
@@ -263,7 +275,8 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         _lastRenderedRevision = 0;
         GeneratedCount = 0;
         DuplicateRejectedCount = 0;
-        LastTopCompositionInsertedText = string.Empty;
+        RecentTopCompositionInsertedTexts.Clear();
+        HasRecentInsertions = false;
         TopCompositions.Clear();
     }
 

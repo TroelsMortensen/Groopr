@@ -12,11 +12,12 @@ public enum TryAddResult
 public class TopCompositionKeeper(int capacity = 5)
 {
     private readonly List<GroupComposition> _compositions = [];
+    private readonly List<DateTime> _recentInsertedAt = [];
     private readonly int _capacity = capacity;
 
     public IReadOnlyList<GroupComposition> Compositions => _compositions;
 
-    public DateTime? LastInsertedAt { get; private set; }
+    public IReadOnlyList<DateTime> RecentInsertedAt => _recentInsertedAt;
 
     public long Revision { get; private set; }
 
@@ -51,13 +52,18 @@ public class TopCompositionKeeper(int capacity = 5)
     public void Clear()
     {
         _compositions.Clear();
-        LastInsertedAt = null;
+        _recentInsertedAt.Clear();
         Revision = 0;
     }
 
     private void RecordInsertion()
     {
-        LastInsertedAt = DateTime.UtcNow;
+        _recentInsertedAt.Insert(0, DateTime.UtcNow);
+        if (_recentInsertedAt.Count > _capacity)
+        {
+            _recentInsertedAt.RemoveAt(_recentInsertedAt.Count - 1);
+        }
+
         Revision++;
     }
 

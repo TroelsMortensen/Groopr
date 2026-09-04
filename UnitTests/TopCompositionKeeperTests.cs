@@ -207,28 +207,28 @@ public class TopCompositionKeeperTests
             100,
             Group("100002", "100001"));
 
-        Assert.Equal(TryAddResult.RejectedAsDuplicate, keeper.TryAdd(duplicateOfHighWithBetterScore));
+        Assert.Equal(TryAddResult.RejectedAsDuplicate, keeper.TryAdd(duplicateOfHighWithBetterScore)); 
         Assert.Equal([10, 5], keeper.Compositions.Select(c => c.TotalScore));
         Assert.Same(high, keeper.Compositions[0]);
         Assert.Same(low, keeper.Compositions[1]);
     }
 
     [Fact]
-    public void TryAdd_Duplicate_DoesNotUpdateRevisionOrLastInsertedAt()
+    public void TryAdd_Duplicate_DoesNotUpdateRevisionOrRecentInsertedAt()
     {
         var keeper = new TopCompositionKeeper();
         var original = Composition(10, Group("100001", "100002"));
 
         keeper.TryAdd(original);
         var revision = keeper.Revision;
-        var insertedAt = keeper.LastInsertedAt;
+        var recentInsertedAt = keeper.RecentInsertedAt.ToArray();
 
         Assert.Equal(
             TryAddResult.RejectedAsDuplicate,
             keeper.TryAdd(Composition(50, Group("100002", "100001"))));
 
         Assert.Equal(revision, keeper.Revision);
-        Assert.Equal(insertedAt, keeper.LastInsertedAt);
+        Assert.Equal(recentInsertedAt, keeper.RecentInsertedAt);
     }
 
     [Fact]
@@ -374,41 +374,67 @@ public class TopCompositionKeeperTests
 
     #endregion
 
-    #region LastInsertedAt
+    #region RecentInsertedAt
 
     [Fact]
-    public void TryAdd_SetsLastInsertedAt()
+    public void TryAdd_RecordsRecentInsertedAt()
     {
         var keeper = new TopCompositionKeeper();
         var before = DateTime.UtcNow;
 
         keeper.TryAdd(DistinctComposition(1));
 
-        Assert.NotNull(keeper.LastInsertedAt);
-        Assert.InRange(keeper.LastInsertedAt!.Value, before, DateTime.UtcNow);
+        Assert.Single(keeper.RecentInsertedAt);
+        Assert.InRange(keeper.RecentInsertedAt[0], before, DateTime.UtcNow);
     }
 
     [Fact]
-    public void TryAdd_RejectedScoreTooLow_DoesNotUpdateLastInsertedAt()
+    public void TryAdd_PrependsRecentInsertedAt_AndCapsAtCapacity()
+    {
+        var keeper = new TopCompositionKeeper(3);
+
+        keeper.TryAdd(DistinctComposition(1));
+        Assert.Single(keeper.RecentInsertedAt);
+
+        var afterFirst = keeper.RecentInsertedAt[0];
+        keeper.TryAdd(DistinctComposition(2));
+        Assert.Equal(2, keeper.RecentInsertedAt.Count);
+        Assert.Equal(afterFirst, keeper.RecentInsertedAt[1]);
+
+        var afterSecond = keeper.RecentInsertedAt.ToArray();
+        keeper.TryAdd(DistinctComposition(3));
+        Assert.Equal(3, keeper.RecentInsertedAt.Count);
+        Assert.Equal(afterSecond[0], keeper.RecentInsertedAt[1]);
+        Assert.Equal(afterSecond[1], keeper.RecentInsertedAt[2]);
+
+        var afterThird = keeper.RecentInsertedAt.ToArray();
+        keeper.TryAdd(DistinctComposition(4));
+        Assert.Equal(3, keeper.RecentInsertedAt.Count);
+        Assert.Equal(afterThird[0], keeper.RecentInsertedAt[1]);
+        Assert.Equal(afterThird[1], keeper.RecentInsertedAt[2]);
+    }
+
+    [Fact]
+    public void TryAdd_RejectedScoreTooLow_DoesNotUpdateRecentInsertedAt()
     {
         var keeper = new TopCompositionKeeper(1);
         keeper.TryAdd(DistinctComposition(10));
-        var firstInsertedAt = keeper.LastInsertedAt;
+        var recentInsertedAt = keeper.RecentInsertedAt.ToArray();
 
         Assert.Equal(TryAddResult.RejectedScoreTooLow, keeper.TryAdd(DistinctComposition(5)));
 
-        Assert.Equal(firstInsertedAt, keeper.LastInsertedAt);
+        Assert.Equal(recentInsertedAt, keeper.RecentInsertedAt);
     }
 
     [Fact]
-    public void Clear_ClearsLastInsertedAt()
+    public void Clear_ClearsRecentInsertedAt()
     {
         var keeper = new TopCompositionKeeper();
         keeper.TryAdd(DistinctComposition(1));
 
         keeper.Clear();
 
-        Assert.Null(keeper.LastInsertedAt);
+        Assert.Empty(keeper.RecentInsertedAt);
     }
 
     #endregion

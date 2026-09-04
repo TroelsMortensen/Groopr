@@ -2,7 +2,6 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:conv="using:Avalonia.Data.Converters"
              xmlns:generation="clr-namespace:AvaloniaUI.ViewModels.GroupCompositionGeneration"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="AvaloniaUI.Views.GroupCompositionGeneration.GroupCompositionGenerationView"
@@ -43,9 +42,20 @@
                        Text="{Binding GeneratedCount, StringFormat=Generated: {0:N0}}" />
             <TextBlock FontSize="14"
                        Text="{Binding DuplicateRejectedCount, StringFormat=Duplicates rejected: {0:N0}}" />
-            <TextBlock FontSize="14"
-                       Text="{Binding LastTopCompositionInsertedText, StringFormat=Last top-5 insertion: {0}}"
-                       IsVisible="{Binding LastTopCompositionInsertedText, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}" />
+            <StackPanel Spacing="2"
+                        IsVisible="{Binding HasRecentInsertions}">
+                <TextBlock FontSize="14"
+                           Text="Recent top-5 insertions:" />
+                <ItemsControl ItemsSource="{Binding RecentTopCompositionInsertedTexts}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="x:String">
+                            <TextBlock FontSize="14"
+                                       Text="{Binding}"
+                                       Margin="12,0,0,0" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
         </StackPanel>
 
         <ScrollViewer Grid.Row="2" Margin="0,12,0,0">
