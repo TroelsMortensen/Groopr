@@ -32,6 +32,12 @@ Two GroupCompositions are considered the same if they contain the same groups of
 - Avalonia UI for the desktop application
 - Eventually Blazor wasm for a web application
 
+## Implementation strategy
+
+As much as possible, the code in the Logic project is implemented using test-driven development. That means one agent will first write unit tests. Then a second agent will implement the code, **without looking at the tests**. I do not want the implemented behaviour to be influenced by what the tests look like, in case the first agent misinterpreted the requirements. If tests and implementation match, all seem good. If the tests fail, one agent misunderstood something.
+
+This means tests are not to be skipped or disabled.
+
 ## Workflow
 
 Conceptual Architecture of the Grouping Engine
