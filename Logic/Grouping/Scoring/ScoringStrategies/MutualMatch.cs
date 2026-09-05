@@ -7,9 +7,10 @@ public class MutualMatch(double points) : IScorer
     public string Name { get; } = "MutualMatch";
 
     public double Evaluate(GroupComposition composition) =>
-        composition.Groups
-            .Sum(group => CountMutualPairs(group.Members) * points
-            );
+        composition.Groups.Sum(EvaluateGroup);
+
+    public double EvaluateGroup(Group group) =>
+        CountMutualPairs(group.Members) * points;
 
     private static int CountMutualPairs(IReadOnlyList<Student> members) =>
         members.SelectMany(

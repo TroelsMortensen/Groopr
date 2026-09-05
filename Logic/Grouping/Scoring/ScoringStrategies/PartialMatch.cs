@@ -7,7 +7,10 @@ public class PartialMatch(double points) : IScorer
     public string Name { get; } = "PartialMatch";
 
     public double Evaluate(GroupComposition composition) =>
-        composition.Groups.Sum(group => CountPartialMatches(group.Members) * points);
+        composition.Groups.Sum(EvaluateGroup);
+
+    public double EvaluateGroup(Group group) =>
+        CountPartialMatches(group.Members) * points;
 
     private static int CountPartialMatches(IReadOnlyList<Student> members) =>
         // Check every ordered pair (A -> B and B -> A separately)

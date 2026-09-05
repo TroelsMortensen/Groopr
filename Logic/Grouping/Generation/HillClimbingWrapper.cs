@@ -10,7 +10,7 @@ namespace Logic.Grouping.Generation;
 /// However, it is about 100x slower than e.g. the MutualPairFirstStrategy, and in my benchmarks it is only marginally better.
 /// Not worth it, but fun.
 /// Further problems are that it may produce an invalid group, which is only check before scoring.
-/// Optimizations would to expose a ScoreGroup function, and only re-score the affected groups.
+/// Polishing uses per-group delta scoring: only the two groups touched by a swap are re-scored.
 /// </summary>
 public class HillClimbingWrapper : IGroupCompositionProducer
 {
@@ -75,7 +75,10 @@ public class HillClimbingWrapper : IGroupCompositionProducer
             .Select(group => group.Members.ToList())
             .ToList();
 
-        double bestScore = scorer.Score(ToComposition(working)).TotalScore;
+        double[] groupScores = working
+            .Select(members => scorer.ScoreGroup(new Group(members)))
+            .ToArray();
+        double bestScore = groupScores.Sum();
 
         for (int i = 0; i < iterations; i++)
         {
@@ -92,10 +95,15 @@ public class HillClimbingWrapper : IGroupCompositionProducer
             working[groupA][indexA] = studentB;
             working[groupB][indexB] = studentA;
 
-            double candidateScore = scorer.Score(ToComposition(working)).TotalScore;
+            double newA = scorer.ScoreGroup(new Group(working[groupA]));
+            double newB = scorer.ScoreGroup(new Group(working[groupB]));
+            double candidateScore = bestScore - groupScores[groupA] - groupScores[groupB] + newA + newB;
+
             if (candidateScore > bestScore)
             {
                 bestScore = candidateScore;
+                groupScores[groupA] = newA;
+                groupScores[groupB] = newB;
             }
             else
             {

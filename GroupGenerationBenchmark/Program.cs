@@ -31,15 +31,15 @@ var scorer = new GroupCompositionScorer(
 
 var strategies = new List<(string Name, IGroupCompositionProducer Producer)>
 {
-    ("RandomShuffle", new RandomShuffleStrategy(students, sizes)),
-    ("BreadthFirstGreedy", new BreadthFirstGreedyStrategy(students, sizes)),
-    ("DepthFirstGreedy", new DepthFirstGreedyStrategy(students, sizes)),
-    ("MutualPairFirst", new MutualPairFirstStrategy(students, sizes)),
-    ("OrphanFirst", new OrphanFirstStrategy(students, sizes)),
-    ("TriadFirst", new TriadFirstStrategy(students, sizes)),
-    ("IslandFirst", new IslandFirstStrategy(students, sizes)),
+    // ("RandomShuffle", new RandomShuffleStrategy(students, sizes)),
+    // ("BreadthFirstGreedy", new BreadthFirstGreedyStrategy(students, sizes)),
+    // ("DepthFirstGreedy", new DepthFirstGreedyStrategy(students, sizes)),
+    // ("MutualPairFirst", new MutualPairFirstStrategy(students, sizes)),
+    // ("OrphanFirst", new OrphanFirstStrategy(students, sizes)),
+    // ("TriadFirst", new TriadFirstStrategy(students, sizes)),
+    // ("IslandFirst", new IslandFirstStrategy(students, sizes)),
     ("HillClimbing", new HillClimbingWrapper(students, sizes, scorer)),
-    ("RoundRobin", new RoundRobinStrategy(students, sizes)),
+    // ("RoundRobin", new RoundRobinStrategy(students, sizes)),
 };
 
 PrintHeader(fixtureName, students, sizes, Generations);

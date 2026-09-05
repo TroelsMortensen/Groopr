@@ -6,4 +6,5 @@ public interface IScorer
 {
     string Name  { get; }
     double Evaluate(GroupComposition composition);
+    double EvaluateGroup(Group group);
 }

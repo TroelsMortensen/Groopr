@@ -7,7 +7,10 @@ public class NegativeMatch(double points) : IScorer
     public string Name { get; } = "NegativeMatch";
 
     public double Evaluate(GroupComposition composition) =>
-        composition.Groups.Sum(group => CountNegativeMatches(group.Members) * -points);
+        composition.Groups.Sum(EvaluateGroup);
+
+    public double EvaluateGroup(Group group) =>
+        CountNegativeMatches(group.Members) * -points;
 
     private static int CountNegativeMatches(IReadOnlyList<Student> members) =>
         members.SelectMany(
