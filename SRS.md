@@ -63,31 +63,38 @@ Conceptual Architecture of the Grouping Engine
 
 ### 5. The Generation & Search Loop (The "Dinner" Engine)
 - Because your scale is capped around 45 students and you are happy to let a random search run for a few minutes, a Monte Carlo / Random Sampling with Elitism approach fits your workflow perfectly:
-- The Generator: Randomly shuffles the student pool and slots them into the structural template blueprint.
+- The Generator: Produces candidate compositions via pluggable generation strategies (see below). Each strategy yields an infinite stream of structurally valid, unscored compositions matching the size blueprint.
 - The Gatekeeper (Hard Rejects): Before spending time calculating a score, the candidate composition passes through all active hard constraints (e.g., "Are any blacklisted students in the same group?"). If it fails, it is immediately thrown out.
 - The Evaluator (Scoring Pipeline): If it passes validation, it runs through your chain of active scoring rules (mutuals, partials, personality variety, etc.) to produce a final fitness score.
 - The Keeper (Elitism): The engine maintains a rolling "Top 5" list. If a newly generated valid composition beats the lowest score on the top-list, it replaces it. If the composition is a duplicate of one already on the top-list (same student-number partition), it is rejected and not inserted—even if its score is higher. This runs continuously in a loop until you stop it.
 
+### 6. Generation strategies
+
+All strategies implement the same producer interface and return structurally valid partitions. Wish-aware strategies typically shuffle (or otherwise randomize ties) once per composition so the Monte Carlo loop explores variety.
+
+- **RandomShuffleStrategy** — Shuffles the student pool and slices it sequentially into the blueprint sizes. No use of wishes while generating.
+- **BreadthFirstGreedyStrategy** — Seeds each group from the shuffled pool, then repeatedly expands by taking an available positive wish from the earliest group member who still has one (BFS-style over join order); falls back to the next unassigned student when stuck.
+- **DepthFirstGreedyStrategy** — Like BFS greedy, but always expands from the most recently added student (a chain walk). When that tip has no available wishes, picks a random unassigned student and pivots the chain to them.
+- **MutualPairFirstStrategy** — Pre-detects mutual positive-wish pairs, seeds groups with a mutual pair when size allows, then fills remaining seats with BFS greedy expansion (or a single random seed if no pair is available).
+- **OrphanFirstStrategy** — Orders students by incoming positive-wish count (least wished-for first), seeds each group with the most isolated remaining student, then fills with BFS greedy expansion.
+- **TriadFirstStrategy** — Pre-detects directed wish triangles (A→B→C→A), seeds with a triangle when group size ≥ 3, otherwise falls back to mutual-pair then random seeding, then BFS greedy fill.
+- **IslandFirstStrategy** — Finds connected components in the undirected positive-wish graph (“friend islands”), prefers seeding with the largest island that still fits the target group size, then BFS greedy fill; if none fit, seeds with a single student.
+- **RoundRobinStrategy** — Composite producer: runs a list of child strategies in alternating phases (default: MutualPairFirst then OrphanFirst, 1000 compositions each) so the search budget is shared across approaches.
+- **HillClimbingWrapper** — Refinement wrapper (default inner: MutualPairFirst). After each baseline composition, repeatedly proposes random swaps of two students in different groups and keeps a swap only when the score improves (default ~75 iterations). Yields the polished composition still unscored for the outer pipeline.
+- **SlidingWindowStrategy** — Planned sliding-window selection over shuffled orderings; not implemented yet.
 
 ## Tasks
+
+### Task 1 Add Hill Climber finisher
+After generation is complete, ask if the user wants to run the Hill Climber finisher, in an attempt to improve the group compositions.
+
 
 ### Task 2 setup group generation UI updates
 - show last five timestamps for accepted group compositions
 
+
 ### Task 3 multithreading
 - Maybe....
-
-
-### Task 3 Group composition Generation
-
-#### Option 2: Sliding window selection - TODO
-Randomly sort the list, create groups.
-	- Use above ordered list, but start with student x+1 for plucking groups
-	- Use same ordered list, but start with student x+2 for plucking groups
-	- ...
-	- Use x+n. Then go back to first step: random sort list.
-
-In case of duplicate random sorts, this will produce many duplicate group compositions.
 
 # prompt
 ...

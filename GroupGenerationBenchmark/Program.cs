@@ -10,6 +10,9 @@ using Logic.Models;
 const int Generations = 100_000;
 const int WarmupGenerations = 1_000;
 
+// Compact P10/P50/P90 + sparkline summary (in addition to full histograms). Set false to hide.
+const bool ShowCompactDistributionSummary = false;
+
 var students = BenchmarkStudentData.CreateStudents30();
 var fixtureName = "Students30";
 // var students = BenchmarkStudentData.CreateStudents50();
@@ -33,6 +36,10 @@ var strategies = new List<(string Name, IGroupCompositionProducer Producer)>
     ("DepthFirstGreedy", new DepthFirstGreedyStrategy(students, sizes)),
     ("MutualPairFirst", new MutualPairFirstStrategy(students, sizes)),
     ("OrphanFirst", new OrphanFirstStrategy(students, sizes)),
+    ("TriadFirst", new TriadFirstStrategy(students, sizes)),
+    ("IslandFirst", new IslandFirstStrategy(students, sizes)),
+    ("HillClimbing", new HillClimbingWrapper(students, sizes, scorer)),
+    ("RoundRobin", new RoundRobinStrategy(students, sizes)),
 };
 
 PrintHeader(fixtureName, students, sizes, Generations);
@@ -62,6 +69,27 @@ foreach (var (name, producer) in strategies)
     Console.WriteLine(
         $"{name,-22} {quality.Max,8:0.##} {quality.Mean,10:0.##} {quality.Median,10:0.##} {quality.StdDev,10:0.##} {quality.Min,8:0.##}");
 }
+
+// if (ShowCompactDistributionSummary)
+// {
+//     Console.WriteLine();
+//     Console.WriteLine("=== Compact distribution (P10 / P50 / P90 + sparkline) ===");
+//     Console.WriteLine(
+//         $"{"Strategy",-22} {"P10",8} {"P50",8} {"P90",8}  Distribution");
+//     Console.WriteLine(new string('-', 72));
+
+//     double globalMin = qualityByStrategy.Min(q => q.Quality.Min);
+//     double globalMax = qualityByStrategy.Max(q => q.Quality.Max);
+
+//     foreach (var (name, quality) in qualityByStrategy)
+//     {
+//         double p10 = Percentile(quality.SortedScores, 0.10);
+//         double p50 = Percentile(quality.SortedScores, 0.50);
+//         double p90 = Percentile(quality.SortedScores, 0.90);
+//         string sparkline = BuildSparkline(quality.SortedScores, globalMin, globalMax);
+//         Console.WriteLine($"{name,-22} {p10,8:0.##} {p50,8:0.##} {p90,8:0.##}  {sparkline}");
+//     }
+// }
 
 Console.WriteLine();
 Console.WriteLine("=== Score histograms ===");
@@ -109,19 +137,61 @@ static QualityResult MeasureGroupCompositionQuality(
 
     Array.Sort(scores);
     double mean = scores.Sum() / scores.Length;
-    double median = Median(scores);
+    double median = Percentile(scores, 0.50);
     double variance = scores.Sum(s => (s - mean) * (s - mean)) / scores.Length;
     double stdDev = Math.Sqrt(variance);
 
-    return new QualityResult(scores[^1], mean, median, stdDev, scores[0], histogram);
+    return new QualityResult(scores[^1], mean, median, stdDev, scores[0], histogram, scores);
 }
 
-static double Median(double[] sorted)
+static double Percentile(double[] sorted, double p)
 {
-    int n = sorted.Length;
-    if (n % 2 == 1)
-        return sorted[n / 2];
-    return (sorted[n / 2 - 1] + sorted[n / 2]) / 2.0;
+    if (sorted.Length == 0)
+        return 0;
+    if (sorted.Length == 1)
+        return sorted[0];
+
+    double index = p * (sorted.Length - 1);
+    int lo = (int)Math.Floor(index);
+    int hi = (int)Math.Ceiling(index);
+    if (lo == hi)
+        return sorted[lo];
+    double t = index - lo;
+    return sorted[lo] * (1 - t) + sorted[hi] * t;
+}
+
+static string BuildSparkline(double[] sortedScores, double globalMin, double globalMax, int bins = 24)
+{
+    char[] blocks = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+    var counts = new int[bins];
+
+    if (globalMax <= globalMin)
+        return new string(blocks[0], bins);
+
+    double width = globalMax - globalMin;
+    foreach (double score in sortedScores)
+    {
+        int bin = (int)((score - globalMin) / width * bins);
+        if (bin >= bins)
+            bin = bins - 1;
+        if (bin < 0)
+            bin = 0;
+        counts[bin]++;
+    }
+
+    int maxCount = counts.Max();
+    if (maxCount == 0)
+        return new string(blocks[0], bins);
+
+    return string.Create(bins, (counts, maxCount), (span, state) =>
+    {
+        char[] levels = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
+        for (int i = 0; i < span.Length; i++)
+        {
+            int level = (int)Math.Round(state.counts[i] * (levels.Length - 1) / (double)state.maxCount);
+            span[i] = levels[level];
+        }
+    });
 }
 
 static void PrintHeader(string fixtureName, StudentList students, GroupSizeDistribution sizes, int generations)
@@ -158,4 +228,5 @@ readonly record struct QualityResult(
     double Median,
     double StdDev,
     double Min,
-    Dictionary<double, int> Histogram);
+    Dictionary<double, int> Histogram,
+    double[] SortedScores);

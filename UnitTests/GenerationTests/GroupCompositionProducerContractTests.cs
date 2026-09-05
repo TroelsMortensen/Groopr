@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using Logic.GroupSizing;
 using Logic.Grouping.Generation;
+using Logic.Grouping.Scoring;
+using Logic.Grouping.Scoring.ScoringStrategies;
 using Logic.Models;
 
 namespace UnitTests.GenerationTests;
@@ -519,4 +521,45 @@ public sealed class OrphanFirstStrategyContractTests : GroupCompositionProducerC
         StudentList students,
         GroupSizeDistribution groupSizes)
         => new OrphanFirstStrategy(students, groupSizes);
+}
+
+public sealed class RoundRobinStrategyContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new RoundRobinStrategy(students, groupSizes);
+}
+
+public sealed class TriadFirstStrategyContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new TriadFirstStrategy(students, groupSizes);
+}
+
+public sealed class IslandFirstStrategyContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new IslandFirstStrategy(students, groupSizes);
+}
+
+public sealed class HillClimbingWrapperContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new HillClimbingWrapper(
+            students,
+            groupSizes,
+            new GroupCompositionScorer(
+            [
+                new MutualMatch(3),
+                new PartialMatch(1),
+                new NegativeMatch(3),
+            ]),
+            iterations: 25);
 }
