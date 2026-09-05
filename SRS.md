@@ -55,6 +55,7 @@ Conceptual Architecture of the Grouping Engine
     - Mutual matches
     - Partial matches
     - Negative matches (subtracts points when students who listed each other as negative wishes (not necessarily a mutual negative wish) are placed in the same group)
+- All current scoring rules are additive per group: a composition’s total score is the sum of each group’s contribution. Scorers therefore expose both full-composition and single-group evaluation so callers (e.g. local search) can re-score only affected groups.
 
 ### 4. Invalidation rules configuration
 - The user will be able to configure the invalidation rules. These are rules that will reject a group composition before it is scored.
@@ -67,6 +68,7 @@ Conceptual Architecture of the Grouping Engine
 - The Gatekeeper (Hard Rejects): Before spending time calculating a score, the candidate composition passes through all active hard constraints (e.g., "Are any blacklisted students in the same group?"). If it fails, it is immediately thrown out.
 - The Evaluator (Scoring Pipeline): If it passes validation, it runs through your chain of active scoring rules (mutuals, partials, personality variety, etc.) to produce a final fitness score.
 - The Keeper (Elitism): The engine maintains a rolling "Top 5" list. If a newly generated valid composition beats the lowest score on the top-list, it replaces it. If the composition is a duplicate of one already on the top-list (same student-number partition), it is rejected and not inserted—even if its score is higher. This runs continuously in a loop until you stop it.
+- The Polish finisher (UI): After the user stops generation, they can run a separate Start/Stop-style **Polish** loop on the current top list. Each pass applies hill-climbing local search to every retained composition. Improvements replace that slot in place and re-order by score; compositions are never pushed out of the top list by polishing. Invalid polished results are discarded. A **Polished** counter shows how many polish attempts have run.
 
 ### 6. Generation strategies
 
@@ -80,16 +82,18 @@ All strategies implement the same producer interface and return structurally val
 - **TriadFirstStrategy** — Pre-detects directed wish triangles (A→B→C→A), seeds with a triangle when group size ≥ 3, otherwise falls back to mutual-pair then random seeding, then BFS greedy fill.
 - **IslandFirstStrategy** — Finds connected components in the undirected positive-wish graph (“friend islands”), prefers seeding with the largest island that still fits the target group size, then BFS greedy fill; if none fit, seeds with a single student.
 - **RoundRobinStrategy** — Composite producer: runs a list of child strategies in alternating phases (default: MutualPairFirst then OrphanFirst, 1000 compositions each) so the search budget is shared across approaches.
-- **HillClimbingWrapper** — Refinement wrapper (default inner: MutualPairFirst). After each baseline composition, repeatedly proposes random swaps of two students in different groups and keeps a swap only when the score improves (default ~75 iterations). Yields the polished composition still unscored for the outer pipeline.
+- **HillClimbingWrapper** — Refinement via random student swaps between groups (default ~75 iterations), using per-group delta scoring. Can wrap an inner producer (`GenerateStream` yields polished compositions still unscored for the outer pipeline) or be used polish-only via public `Polish` (returns a new composition with `TotalScore` set; does not mutate the input). Default inner when used as a producer: MutualPairFirst.
+- **SimulatedAnnealingWrapper** — Refinement wrapper (default inner: MutualPairFirst). After each baseline, runs simulated annealing: random inter-group swaps accepted by the Metropolis rule while temperature cools (`InitialTemperature`, `CoolingRate`, `MinTemperature`, `StepsPerTemp`; default steps ≈ classroom size × 10). Tracks the global best layout separately from the wandering current state. Uses per-group delta scoring. Yields the polished composition still unscored for the outer pipeline.
+- **MatrixWindowScanStrategy** — Builds and sorts all student dyads by scorer score, seeds each group with the best still-available dyad, then greedily expands by marginal score impact until the blueprint size is filled. Falls back to sequential take when no dyad remains (or for size-1 groups). Requires a `GroupCompositionScorer`. Shuffle once per composition for tie-break variety.
+- **EdgeContractionMatchingStrategy** — Agglomerative clustering: each student starts as a singleton node; all inter-node edges are weighted by scorer affinity and contracted highest-first while respecting max blueprint size, until the target group count is reached. Stray nodes are force-merged, then members are rebalanced to the exact blueprint sizes (preferring lowest scoring loss). Requires a `GroupCompositionScorer`. Shuffle once per composition for tie-break variety.
 - **SlidingWindowStrategy** — Planned sliding-window selection over shuffled orderings; not implemented yet.
 
 ## Tasks
 
-### Task 1 Add Hill Climber finisher
-After generation is complete, ask if the user wants to run the Hill Climber finisher, in an attempt to improve the group compositions.
+### Task 1 Add Hill Climber finisher — DONE
+Desktop generation view: **Polish** / **Stop polishing** button applies hill climbing to the current top compositions in place (reorder only; never displace). Shows a Polished attempt counter. Mutually exclusive with Start/Stop generation.
 
-
-### Task 2 setup group generation UI updates
+### Task 2 setup group generation UI updates — DONE
 - show last five timestamps for accepted group compositions
 
 

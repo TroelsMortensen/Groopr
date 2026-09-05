@@ -14,7 +14,7 @@ namespace Logic.Grouping.Generation;
 /// </summary>
 public class HillClimbingWrapper : IGroupCompositionProducer
 {
-    private readonly IGroupCompositionProducer inner;
+    private readonly IGroupCompositionProducer? inner;
     private readonly GroupCompositionScorer scorer;
     private readonly int iterations;
 
@@ -26,6 +26,24 @@ public class HillClimbingWrapper : IGroupCompositionProducer
     {
         get;
         set;
+    }
+
+    /// <summary>
+    /// Polish-only constructor for refining existing compositions without an inner producer.
+    /// </summary>
+    public HillClimbingWrapper(GroupCompositionScorer scorer, int iterations = 75)
+    {
+        ArgumentNullException.ThrowIfNull(scorer);
+
+        if (iterations < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(iterations), iterations, "Iterations must be at least 1.");
+        }
+
+        this.inner = null;
+        this.scorer = scorer;
+        this.iterations = iterations;
+        ProposeSwap = ProposeRandomSwap;
     }
 
     public HillClimbingWrapper(
@@ -58,6 +76,12 @@ public class HillClimbingWrapper : IGroupCompositionProducer
 
     public IEnumerable<GroupComposition> GenerateStream(CancellationToken cancellationToken = default)
     {
+        if (inner is null)
+        {
+            throw new InvalidOperationException(
+                "GenerateStream requires an inner producer. Use the constructor that accepts IGroupCompositionProducer, or call Polish directly.");
+        }
+
         foreach (GroupComposition baseline in inner.GenerateStream(cancellationToken))
         {
             if (cancellationToken.IsCancellationRequested)
@@ -65,12 +89,20 @@ public class HillClimbingWrapper : IGroupCompositionProducer
                 yield break;
             }
 
-            yield return Polish(baseline);
+            yield return Polish(baseline, cancellationToken) with { TotalScore = 0 };
         }
     }
 
-    private GroupComposition Polish(GroupComposition baseline)
+    /// <summary>
+    /// Runs swap-based local search on a copy of <paramref name="baseline"/>.
+    /// Does not mutate the input. Returns a new composition with <see cref="GroupComposition.TotalScore"/> set.
+    /// </summary>
+    public GroupComposition Polish(
+        GroupComposition baseline,
+        CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(baseline);
+
         List<List<Student>> working = baseline.Groups
             .Select(group => group.Members.ToList())
             .ToList();
@@ -82,6 +114,8 @@ public class HillClimbingWrapper : IGroupCompositionProducer
 
         for (int i = 0; i < iterations; i++)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             var proposal = ProposeSwap(working);
             if (proposal is null)
             {
@@ -112,8 +146,7 @@ public class HillClimbingWrapper : IGroupCompositionProducer
             }
         }
 
-        // Freshly generated compositions remain unscored for the outer pipeline.
-        return ToComposition(working) with { TotalScore = 0 };
+        return ToComposition(working) with { TotalScore = bestScore };
     }
 
     private static GroupComposition ToComposition(IReadOnlyList<List<Student>> groups) =>

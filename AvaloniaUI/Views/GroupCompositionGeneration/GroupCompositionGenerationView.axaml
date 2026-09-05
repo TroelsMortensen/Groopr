@@ -31,15 +31,22 @@
             <Button Content="Back"
                     HorizontalAlignment="Left"
                     Command="{Binding BackCommand}" />
-            <Button Grid.Column="1"
-                    Content="{Binding GenerationButtonText}"
-                    HorizontalAlignment="Right"
-                    Command="{Binding ToggleGenerationCommand}" />
+            <StackPanel Grid.Column="1"
+                        Orientation="Horizontal"
+                        HorizontalAlignment="Right"
+                        Spacing="8">
+                <Button Content="{Binding PolishButtonText}"
+                        Command="{Binding TogglePolishCommand}" />
+                <Button Content="{Binding GenerationButtonText}"
+                        Command="{Binding ToggleGenerationCommand}" />
+            </StackPanel>
         </Grid>
 
         <StackPanel Grid.Row="1" Margin="0,12,0,0" Spacing="4">
             <TextBlock FontSize="14"
                        Text="{Binding GeneratedCount, StringFormat=Generated: {0:N0}}" />
+            <TextBlock FontSize="14"
+                       Text="{Binding PolishedCount, StringFormat=Polished: {0:N0}}" />
             <TextBlock FontSize="14"
                        Text="{Binding DuplicateRejectedCount, StringFormat=Duplicates rejected: {0:N0}}" />
             <StackPanel Spacing="2"

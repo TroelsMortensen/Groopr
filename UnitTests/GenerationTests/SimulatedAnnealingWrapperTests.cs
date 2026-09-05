@@ -6,10 +6,10 @@ using Logic.Models;
 namespace UnitTests.GenerationTests;
 
 /// <summary>
-/// Behavior that is specific to <see cref="HillClimbingWrapper"/>
-/// (inner generation + swap-based local search), not the shared producer contract.
+/// Behavior specific to <see cref="SimulatedAnnealingWrapper"/>
+/// (inner generation + Metropolis swap search), not the shared producer contract.
 /// </summary>
-public class HillClimbingWrapperTests
+public class SimulatedAnnealingWrapperTests
 {
     #region Delegation and polishing
 
@@ -17,7 +17,7 @@ public class HillClimbingWrapperTests
     public void GenerateStream_WithoutEnumeration_DoesNotPullFromInner()
     {
         var inner = new CountingStubProducer(CreateSplitComposition());
-        var wrapper = new HillClimbingWrapper(inner, CreateScorer(), iterations: 10);
+        var wrapper = new SimulatedAnnealingWrapper(inner, CreateScorer(), SimulatedAnnealingConfig.Fast);
 
         _ = wrapper.GenerateStream();
 
@@ -28,7 +28,7 @@ public class HillClimbingWrapperTests
     public void GenerateStream_TakeThree_PullsThreeFromInner()
     {
         var inner = new CountingStubProducer(CreateSplitComposition());
-        var wrapper = new HillClimbingWrapper(inner, CreateScorer(), iterations: 5);
+        var wrapper = new SimulatedAnnealingWrapper(inner, CreateScorer(), SimulatedAnnealingConfig.Fast);
 
         _ = wrapper.GenerateStream().Take(3).ToList();
 
@@ -38,8 +38,6 @@ public class HillClimbingWrapperTests
     [Fact]
     public void ImprovingSwap_IsKept()
     {
-        // Baseline: mutual pairs split across groups → score 0.
-        // One swap of B and C yields A↔B and C↔D together.
         Student a = Student.Create("100001", ["100002"]);
         Student b = Student.Create("100002", ["100001"]);
         Student c = Student.Create("100003", ["100004"]);
@@ -51,8 +49,7 @@ public class HillClimbingWrapperTests
         ]);
 
         var inner = new CountingStubProducer(baseline);
-        // Swap group0[1]=C with group1[0]=B
-        var wrapper = new HillClimbingWrapper(inner, CreateScorer(points: 3), iterations: 1)
+        var wrapper = new SimulatedAnnealingWrapper(inner, CreateScorer(points: 3), SingleStepConfig())
         {
             ProposeSwap = _ => (0, 1, 1, 0),
         };
@@ -69,7 +66,7 @@ public class HillClimbingWrapperTests
     }
 
     [Fact]
-    public void WorseningSwap_IsReverted()
+    public void WorseningSwap_IsRejected_WhenAcceptanceDrawIsTooHigh()
     {
         Student a = Student.Create("100001", ["100002"]);
         Student b = Student.Create("100002", ["100001"]);
@@ -81,51 +78,140 @@ public class HillClimbingWrapperTests
             new Group([c, d]),
         ]);
 
-        var inner = new CountingStubProducer(baseline);
-        // Swap that breaks both mutuals
-        var wrapper = new HillClimbingWrapper(inner, CreateScorer(points: 3), iterations: 1)
+        var wrapper = new SimulatedAnnealingWrapper(CreateScorer(points: 3), SingleStepConfig())
         {
             ProposeSwap = _ => (0, 1, 1, 0),
+            // Exp(negative / T) < 1, so drawing 1.0 always rejects.
+            NextAcceptanceDraw = static () => 1.0,
         };
 
-        GroupComposition result = wrapper.GenerateStream().First();
+        GroupComposition polished = wrapper.Polish(baseline);
 
         Assert.Equal(
             ["100001", "100002"],
-            result.Groups[0].Members.Select(student => student.Number));
+            polished.Groups[0].Members.Select(student => student.Number));
         Assert.Equal(
             ["100003", "100004"],
-            result.Groups[1].Members.Select(student => student.Number));
+            polished.Groups[1].Members.Select(student => student.Number));
+        Assert.Equal(6, polished.TotalScore);
     }
 
     [Fact]
-    public void RunsConfiguredIterationCount_OfSwapProposals()
+    public void WorseningSwap_CanBeAccepted_WhenAcceptanceDrawIsLowEnough()
     {
-        var inner = new CountingStubProducer(CreateSplitComposition());
+        Student a = Student.Create("100001", ["100002"]);
+        Student b = Student.Create("100002", ["100001"]);
+        Student c = Student.Create("100003", ["100004"]);
+        Student d = Student.Create("100004", ["100003"]);
+        var baseline = new GroupComposition(
+        [
+            new Group([a, b]),
+            new Group([c, d]),
+        ]);
+
+        int proposal = 0;
+        var wrapper = new SimulatedAnnealingWrapper(CreateScorer(points: 3), SingleStepConfig())
+        {
+            ProposeSwap = _ =>
+            {
+                proposal++;
+                // Only the first proposal worsens; later steps skip.
+                return proposal == 1 ? (0, 1, 1, 0) : null;
+            },
+            NextAcceptanceDraw = static () => 0.0,
+        };
+
+        GroupComposition polished = wrapper.Polish(baseline);
+
+        // Metropolis accepted the downhill move; with no further improving swaps,
+        // the tracked best remains the original layout.
+        Assert.Equal(
+            ["100001", "100002"],
+            polished.Groups[0].Members.Select(student => student.Number));
+        Assert.Equal(
+            ["100003", "100004"],
+            polished.Groups[1].Members.Select(student => student.Number));
+        Assert.Equal(6, polished.TotalScore);
+    }
+
+    [Fact]
+    public void ReturnsGlobalBest_EvenAfterCurrentLayoutWandersDownhill()
+    {
+        Student a = Student.Create("100001", ["100002"]);
+        Student b = Student.Create("100002", ["100001"]);
+        Student c = Student.Create("100003", ["100004"]);
+        Student d = Student.Create("100004", ["100003"]);
+        var baseline = new GroupComposition(
+        [
+            new Group([a, b]),
+            new Group([c, d]),
+        ]);
+
+        // Temperature steps: 10 > 0.1, then 5 > 0.1, then 2.5 > 0.1, then 1.25 > 0.1, then 0.625 > 0.1, then 0.3125 > 0.1, then stop.
+        // One step per temperature → several proposals; accept first worsening, reject further.
+        var config = new SimulatedAnnealingConfig(
+            initialTemperature: 10,
+            coolingRate: 0.5,
+            minTemperature: 0.1,
+            stepsPerTemp: 1);
+
+        int proposal = 0;
+        var wrapper = new SimulatedAnnealingWrapper(CreateScorer(points: 3), config)
+        {
+            ProposeSwap = _ =>
+            {
+                proposal++;
+                return (0, 1, 1, 0);
+            },
+            NextAcceptanceDraw = () => proposal == 1 ? 0.0 : 1.0,
+        };
+
+        GroupComposition polished = wrapper.Polish(baseline);
+
+        Assert.Equal(
+            ["100001", "100002"],
+            polished.Groups[0].Members.Select(student => student.Number));
+        Assert.Equal(
+            ["100003", "100004"],
+            polished.Groups[1].Members.Select(student => student.Number));
+        Assert.Equal(6, polished.TotalScore);
+    }
+
+    [Fact]
+    public void RunsConfiguredSwapProposals_AcrossTemperatureSchedule()
+    {
+        // T: 8 → 4 → 2 → 1 → 0.5 (stop when 0.5 is not > 0.5) → 4 temps × 3 steps = 12
+        var config = new SimulatedAnnealingConfig(
+            initialTemperature: 8,
+            coolingRate: 0.5,
+            minTemperature: 0.5,
+            stepsPerTemp: 3);
+
         int proposals = 0;
-        var wrapper = new HillClimbingWrapper(inner, CreateScorer(), iterations: 17)
+        var wrapper = new SimulatedAnnealingWrapper(CreateScorer(), config)
         {
             ProposeSwap = groups =>
             {
                 proposals++;
                 return (0, 0, 1, 0);
             },
+            NextAcceptanceDraw = static () => 1.0,
         };
 
-        _ = wrapper.GenerateStream().First();
+        _ = wrapper.Polish(CreateSplitComposition());
 
-        Assert.Equal(17, proposals);
+        Assert.Equal(12, proposals);
     }
 
     [Fact]
     public void DefaultConstructor_UsesMutualPairFirstInner()
     {
         var students = CreateStudents(6);
-        var wrapper = new HillClimbingWrapper(
+        var wrapper = new SimulatedAnnealingWrapper(
             StudentList.Create(students),
             GroupSizeDistribution.Create([3, 3], 6),
             CreateScorer(),
-            iterations: 5);
+            SimulatedAnnealingConfig.Fast);
 
         GroupComposition composition = wrapper.GenerateStream().First();
 
@@ -137,21 +223,10 @@ public class HillClimbingWrapperTests
     }
 
     [Fact]
-    public void Constructor_NonPositiveIterations_Throws()
-    {
-        var inner = new CountingStubProducer(CreateSplitComposition());
-
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new HillClimbingWrapper(inner, CreateScorer(), iterations: 0));
-        Assert.Throws<ArgumentOutOfRangeException>(() =>
-            new HillClimbingWrapper(inner, CreateScorer(), iterations: -1));
-    }
-
-    [Fact]
     public void Constructor_NullInner_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new HillClimbingWrapper(null!, CreateScorer(), iterations: 10));
+            new SimulatedAnnealingWrapper(null!, CreateScorer(), SimulatedAnnealingConfig.Fast));
     }
 
     [Fact]
@@ -160,23 +235,73 @@ public class HillClimbingWrapperTests
         var inner = new CountingStubProducer(CreateSplitComposition());
 
         Assert.Throws<ArgumentNullException>(() =>
-            new HillClimbingWrapper(inner, null!, iterations: 10));
+            new SimulatedAnnealingWrapper(inner, null!, SimulatedAnnealingConfig.Fast));
     }
 
     [Fact]
     public void ScorerOnlyConstructor_NullScorer_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new HillClimbingWrapper(null!, iterations: 10));
+            new SimulatedAnnealingWrapper(null!, SimulatedAnnealingConfig.Fast));
     }
 
     [Fact]
     public void ScorerOnlyConstructor_GenerateStream_Throws()
     {
-        var wrapper = new HillClimbingWrapper(CreateScorer(), iterations: 5);
+        var wrapper = new SimulatedAnnealingWrapper(CreateScorer(), SimulatedAnnealingConfig.Fast);
 
         Assert.Throws<InvalidOperationException>(() =>
             wrapper.GenerateStream().First());
+    }
+
+    #endregion
+
+    #region Config validation
+
+    [Fact]
+    public void Config_InvalidInitialTemperature_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(initialTemperature: 0.01, minTemperature: 0.01));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(initialTemperature: 0.005, minTemperature: 0.01));
+    }
+
+    [Fact]
+    public void Config_InvalidCoolingRate_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(coolingRate: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(coolingRate: 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(coolingRate: -0.1));
+    }
+
+    [Fact]
+    public void Config_InvalidMinTemperature_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(minTemperature: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(minTemperature: -1));
+    }
+
+    [Fact]
+    public void Config_InvalidStepsPerTemp_Throws()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(stepsPerTemp: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new SimulatedAnnealingConfig(stepsPerTemp: -3));
+    }
+
+    [Fact]
+    public void Config_ResolveStepsPerTemp_DefaultsToStudentCountTimesTen()
+    {
+        var config = new SimulatedAnnealingConfig();
+
+        Assert.Equal(40, config.ResolveStepsPerTemp(4));
     }
 
     #endregion
@@ -199,7 +324,7 @@ public class HillClimbingWrapperTests
             .Select(g => g.Members.Select(s => s.Number).ToArray())
             .ToArray();
 
-        var wrapper = new HillClimbingWrapper(CreateScorer(points: 3), iterations: 1)
+        var wrapper = new SimulatedAnnealingWrapper(CreateScorer(points: 3), SingleStepConfig())
         {
             ProposeSwap = _ => (0, 1, 1, 0),
         };
@@ -223,7 +348,7 @@ public class HillClimbingWrapperTests
             new Group([b, d]),
         ]);
 
-        var wrapper = new HillClimbingWrapper(CreateScorer(points: 3), iterations: 1)
+        var wrapper = new SimulatedAnnealingWrapper(CreateScorer(points: 3), SingleStepConfig())
         {
             ProposeSwap = _ => (0, 1, 1, 0),
         };
@@ -241,57 +366,10 @@ public class HillClimbingWrapperTests
     }
 
     [Fact]
-    public void Polish_WhenNoImprovement_KeepsPartition_AndReportsBaselineScore()
-    {
-        Student a = Student.Create("100001", ["100002"]);
-        Student b = Student.Create("100002", ["100001"]);
-        Student c = Student.Create("100003", ["100004"]);
-        Student d = Student.Create("100004", ["100003"]);
-        var baseline = new GroupComposition(
-        [
-            new Group([a, b]),
-            new Group([c, d]),
-        ]);
-
-        var wrapper = new HillClimbingWrapper(CreateScorer(points: 3), iterations: 1)
-        {
-            ProposeSwap = _ => (0, 1, 1, 0),
-        };
-
-        GroupComposition polished = wrapper.Polish(baseline);
-
-        Assert.Equal(
-            ["100001", "100002"],
-            polished.Groups[0].Members.Select(student => student.Number));
-        Assert.Equal(
-            ["100003", "100004"],
-            polished.Groups[1].Members.Select(student => student.Number));
-        Assert.Equal(6, polished.TotalScore);
-    }
-
-    [Fact]
-    public void Polish_RunsConfiguredIterationCount_OfSwapProposals()
-    {
-        int proposals = 0;
-        var wrapper = new HillClimbingWrapper(CreateScorer(), iterations: 17)
-        {
-            ProposeSwap = groups =>
-            {
-                proposals++;
-                return (0, 0, 1, 0);
-            },
-        };
-
-        _ = wrapper.Polish(CreateSplitComposition());
-
-        Assert.Equal(17, proposals);
-    }
-
-    [Fact]
     public void Polish_Cancelled_ThrowsOperationCanceled()
     {
         using var cts = new CancellationTokenSource();
-        var wrapper = new HillClimbingWrapper(CreateScorer(), iterations: 100)
+        var wrapper = new SimulatedAnnealingWrapper(CreateScorer(), SimulatedAnnealingConfig.Fast)
         {
             ProposeSwap = _ =>
             {
@@ -318,7 +396,7 @@ public class HillClimbingWrapperTests
         ]);
 
         var inner = new CountingStubProducer(baseline);
-        var wrapper = new HillClimbingWrapper(inner, CreateScorer(points: 3), iterations: 1)
+        var wrapper = new SimulatedAnnealingWrapper(inner, CreateScorer(points: 3), SingleStepConfig())
         {
             ProposeSwap = _ => (0, 1, 1, 0),
         };
@@ -334,6 +412,9 @@ public class HillClimbingWrapperTests
     #endregion
 
     #region Helpers
+
+    private static SimulatedAnnealingConfig SingleStepConfig() =>
+        new(initialTemperature: 10, coolingRate: 0.1, minTemperature: 1, stepsPerTemp: 1);
 
     private static GroupCompositionScorer CreateScorer(double points = 3) =>
         new([new MutualMatch(points)]);

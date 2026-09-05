@@ -476,6 +476,111 @@ public class TopCompositionKeeperTests
 
     #endregion
 
+    #region TryReplace
+
+    [Fact]
+    public void TryReplace_ImprovesScore_AndReorders()
+    {
+        var keeper = new TopCompositionKeeper(3);
+        var low = Composition(5, Group("100001", "100002"), Group("100003", "100004"));
+        var mid = Composition(8, Group("100005", "100006"), Group("100007", "100008"));
+        var high = Composition(10, Group("100009", "100010"), Group("100011", "100012"));
+        keeper.TryAdd(low);
+        keeper.TryAdd(mid);
+        keeper.TryAdd(high);
+
+        var improved = Composition(12, Group("100001", "100003"), Group("100002", "100004"));
+
+        Assert.True(keeper.TryReplace(low, improved));
+        Assert.Equal([12, 10, 8], keeper.Compositions.Select(c => c.TotalScore));
+        Assert.Same(improved, keeper.Compositions[0]);
+        Assert.Equal(3, keeper.Compositions.Count);
+    }
+
+    [Fact]
+    public void TryReplace_EqualOrLowerScore_ReturnsFalse()
+    {
+        var keeper = new TopCompositionKeeper();
+        var current = Composition(10, Group("100001", "100002"), Group("100003", "100004"));
+        keeper.TryAdd(current);
+        var revision = keeper.Revision;
+
+        Assert.False(keeper.TryReplace(
+            current,
+            Composition(10, Group("100001", "100003"), Group("100002", "100004"))));
+        Assert.False(keeper.TryReplace(
+            current,
+            Composition(9, Group("100001", "100003"), Group("100002", "100004"))));
+
+        Assert.Equal(revision, keeper.Revision);
+        Assert.Same(current, keeper.Compositions[0]);
+    }
+
+    [Fact]
+    public void TryReplace_UnknownCurrent_ReturnsFalse()
+    {
+        var keeper = new TopCompositionKeeper();
+        keeper.TryAdd(Composition(10, Group("100001", "100002"), Group("100003", "100004")));
+
+        var unknown = Composition(5, Group("100005", "100006"), Group("100007", "100008"));
+        var improved = Composition(20, Group("100005", "100007"), Group("100006", "100008"));
+
+        Assert.False(keeper.TryReplace(unknown, improved));
+        Assert.Single(keeper.Compositions);
+    }
+
+    [Fact]
+    public void TryReplace_DuplicateOfOtherSlot_ReturnsFalse()
+    {
+        var keeper = new TopCompositionKeeper();
+        var first = Composition(5, Group("100001", "100002"), Group("100003", "100004"));
+        var second = Composition(8, Group("100005", "100006"), Group("100007", "100008"));
+        keeper.TryAdd(first);
+        keeper.TryAdd(second);
+
+        // Same partition as second, higher score — would create a duplicate slot.
+        var improvedToSecond = Composition(20, Group("100005", "100006"), Group("100007", "100008"));
+
+        Assert.False(keeper.TryReplace(first, improvedToSecond));
+        Assert.Equal(2, keeper.Compositions.Count);
+        Assert.Same(first, keeper.Compositions.Single(c => c.TotalScore == 5));
+    }
+
+    [Fact]
+    public void TryReplace_DoesNotEvictPeers()
+    {
+        var keeper = new TopCompositionKeeper(2);
+        var a = Composition(3, Group("100001", "100002"), Group("100003", "100004"));
+        var b = Composition(4, Group("100005", "100006"), Group("100007", "100008"));
+        keeper.TryAdd(a);
+        keeper.TryAdd(b);
+
+        var improvedA = Composition(100, Group("100001", "100003"), Group("100002", "100004"));
+
+        Assert.True(keeper.TryReplace(a, improvedA));
+        Assert.Equal(2, keeper.Compositions.Count);
+        Assert.Contains(b, keeper.Compositions);
+        Assert.Contains(improvedA, keeper.Compositions);
+    }
+
+    [Fact]
+    public void TryReplace_IncrementsRevision_WithoutRecordingInsertion()
+    {
+        var keeper = new TopCompositionKeeper();
+        var current = Composition(5, Group("100001", "100002"), Group("100003", "100004"));
+        keeper.TryAdd(current);
+        var recent = keeper.RecentInsertedAt.ToArray();
+        var revision = keeper.Revision;
+
+        var improved = Composition(9, Group("100001", "100003"), Group("100002", "100004"));
+        Assert.True(keeper.TryReplace(current, improved));
+
+        Assert.Equal(revision + 1, keeper.Revision);
+        Assert.Equal(recent, keeper.RecentInsertedAt);
+    }
+
+    #endregion
+
     private static GroupComposition DistinctComposition(double score)
     {
         var id = Interlocked.Increment(ref _nextPartitionId);

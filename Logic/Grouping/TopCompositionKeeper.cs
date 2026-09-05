@@ -49,6 +49,41 @@ public class TopCompositionKeeper(int capacity = 5)
         return TryAddResult.Added;
     }
 
+    /// <summary>
+    /// Replaces an existing composition in place when <paramref name="improved"/> has a strictly
+    /// higher score and does not duplicate another slot. Reorders by score; does not evict peers
+    /// or record a recent insertion.
+    /// </summary>
+    public bool TryReplace(GroupComposition current, GroupComposition improved)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+        ArgumentNullException.ThrowIfNull(improved);
+
+        var index = _compositions.FindIndex(c => c.Equals(current));
+        if (index < 0)
+        {
+            return false;
+        }
+
+        if (improved.TotalScore <= _compositions[index].TotalScore)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < _compositions.Count; i++)
+        {
+            if (i != index && _compositions[i].Equals(improved))
+            {
+                return false;
+            }
+        }
+
+        _compositions[index] = improved;
+        SortDescending();
+        Revision++;
+        return true;
+    }
+
     public void Clear()
     {
         _compositions.Clear();

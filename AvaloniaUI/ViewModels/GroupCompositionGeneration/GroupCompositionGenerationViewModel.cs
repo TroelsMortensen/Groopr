@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -29,12 +30,16 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     private readonly GroupCompositionScorer _scorer;
     private readonly GroupCompositionInvalidator _invalidator;
     private readonly RandomShuffleStrategy _producer;
+    private readonly HillClimbingWrapper _climber;
     private readonly TopCompositionKeeper _keeper = new();
     private readonly DispatcherTimer _uiRefreshTimer;
 
-    private CancellationTokenSource? _cancellationTokenSource;
+    private CancellationTokenSource? _generationCts;
     private Task? _generationTask;
+    private CancellationTokenSource? _polishCts;
+    private Task? _polishTask;
     private long _generatedCount;
+    private long _polishedCount;
     private long _duplicateRejectedCount;
     private long _lastRenderedRevision;
 
@@ -46,7 +51,13 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     public partial bool IsGenerating { get; set; }
 
     [ObservableProperty]
+    public partial bool IsPolishing { get; set; }
+
+    [ObservableProperty]
     public partial long GeneratedCount { get; set; }
+
+    [ObservableProperty]
+    public partial long PolishedCount { get; set; }
 
     [ObservableProperty]
     public partial long DuplicateRejectedCount { get; set; }
@@ -54,7 +65,12 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     [ObservableProperty]
     public partial bool HasRecentInsertions { get; set; }
 
+    [ObservableProperty]
+    public partial bool HasTopCompositions { get; set; }
+
     public string GenerationButtonText => IsGenerating ? "Stop" : "Start";
+
+    public string PolishButtonText => IsPolishing ? "Stop polishing" : "Polish";
 
     public GroupCompositionGenerationViewModel() : this(
         new InputConfiguration
@@ -95,6 +111,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         _scorer = ScorerConfigurationMapper.ToScorer(inputConfiguration.EnabledScorers);
         _invalidator = InvalidatorConfigurationMapper.ToInvalidator(inputConfiguration.EnabledInvalidators);
         _producer = new RandomShuffleStrategy(studentList, groupSizeDistribution);
+        _climber = new HillClimbingWrapper(_scorer);
 
         _uiRefreshTimer = new DispatcherTimer
         {
@@ -103,9 +120,29 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         _uiRefreshTimer.Tick += OnUiRefreshTimerTick;
     }
 
-    partial void OnIsGeneratingChanged(bool value) => OnPropertyChanged(nameof(GenerationButtonText));
+    partial void OnIsGeneratingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(GenerationButtonText));
+        ToggleGenerationCommand.NotifyCanExecuteChanged();
+        TogglePolishCommand.NotifyCanExecuteChanged();
+    }
 
-    [RelayCommand]
+    partial void OnIsPolishingChanged(bool value)
+    {
+        OnPropertyChanged(nameof(PolishButtonText));
+        ToggleGenerationCommand.NotifyCanExecuteChanged();
+        TogglePolishCommand.NotifyCanExecuteChanged();
+    }
+
+    partial void OnHasTopCompositionsChanged(bool value) =>
+        TogglePolishCommand.NotifyCanExecuteChanged();
+
+    private bool CanToggleGeneration() => !IsPolishing;
+
+    private bool CanTogglePolish() =>
+        IsPolishing || (!IsGenerating && HasTopCompositions);
+
+    [RelayCommand(CanExecute = nameof(CanToggleGeneration))]
     private async Task ToggleGenerationAsync()
     {
         if (IsGenerating)
@@ -117,13 +154,31 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         StartGeneration();
     }
 
+    [RelayCommand(CanExecute = nameof(CanTogglePolish))]
+    private async Task TogglePolishAsync()
+    {
+        if (IsPolishing)
+        {
+            await StopPolishingAsync();
+            return;
+        }
+
+        StartPolishing();
+    }
+
     [RelayCommand]
     private async Task BackAsync()
     {
         var wasGenerating = IsGenerating;
+        var wasPolishing = IsPolishing;
         if (wasGenerating)
         {
             await StopGenerationAsync();
+        }
+
+        if (wasPolishing)
+        {
+            await StopPolishingAsync();
         }
 
         var confirmed = await _dialogService.ShowConfirmAsync(
@@ -135,6 +190,11 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
                 StartGeneration();
             }
 
+            if (wasPolishing)
+            {
+                StartPolishing();
+            }
+
             return;
         }
 
@@ -144,13 +204,13 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
     private void StartGeneration()
     {
-        if (IsGenerating)
+        if (IsGenerating || IsPolishing)
         {
             return;
         }
 
-        _cancellationTokenSource = new CancellationTokenSource();
-        var cancellationToken = _cancellationTokenSource.Token;
+        _generationCts = new CancellationTokenSource();
+        var cancellationToken = _generationCts.Token;
         IsGenerating = true;
         _uiRefreshTimer.Start();
 
@@ -174,12 +234,12 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
     private async Task StopGenerationAsync()
     {
-        if (_cancellationTokenSource is null)
+        if (_generationCts is null)
         {
             return;
         }
 
-        await _cancellationTokenSource.CancelAsync();
+        await _generationCts.CancelAsync();
 
         if (_generationTask is not null)
         {
@@ -192,13 +252,78 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
             }
         }
 
-        StopUiRefreshTimer();
-        FlushUi();
+        if (!IsPolishing)
+        {
+            StopUiRefreshTimer();
+            FlushUi();
+        }
 
-        _cancellationTokenSource.Dispose();
-        _cancellationTokenSource = null;
+        _generationCts.Dispose();
+        _generationCts = null;
         _generationTask = null;
         IsGenerating = false;
+    }
+
+    private void StartPolishing()
+    {
+        if (IsPolishing || IsGenerating || _keeper.Compositions.Count == 0)
+        {
+            return;
+        }
+
+        _polishCts = new CancellationTokenSource();
+        var cancellationToken = _polishCts.Token;
+        IsPolishing = true;
+        _uiRefreshTimer.Start();
+
+        _polishTask = Task.Run(async () =>
+        {
+            try
+            {
+                await PolishLoopAsync(cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                await Dispatcher.UIThread.InvokeAsync(
+                    () => IsPolishing = false,
+                    DispatcherPriority.Background);
+            }
+        }, cancellationToken);
+    }
+
+    private async Task StopPolishingAsync()
+    {
+        if (_polishCts is null)
+        {
+            return;
+        }
+
+        await _polishCts.CancelAsync();
+
+        if (_polishTask is not null)
+        {
+            try
+            {
+                await _polishTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        if (!IsGenerating)
+        {
+            StopUiRefreshTimer();
+            FlushUi();
+        }
+
+        _polishCts.Dispose();
+        _polishCts = null;
+        _polishTask = null;
+        IsPolishing = false;
     }
 
     private async Task GenerationLoopAsync(CancellationToken cancellationToken)
@@ -212,10 +337,10 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
             {
                 await Task.Delay(1, cancellationToken);
             }
-            
+
             if (_invalidator.ShouldReject(rawComposition))
             {
-                  continue;
+                continue;
             }
 
             var scoredComposition = _scorer.Score(rawComposition);
@@ -226,12 +351,54 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         }
     }
 
+    private async Task PolishLoopAsync(CancellationToken cancellationToken)
+    {
+        long polishAttempts = 0;
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var snapshot = _keeper.Compositions.ToArray();
+            if (snapshot.Length == 0)
+            {
+                break;
+            }
+
+            foreach (var composition in snapshot)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                polishAttempts++;
+                if (polishAttempts % YieldEveryIterations == 0)
+                {
+                    await Task.Delay(1, cancellationToken);
+                }
+
+                var polished = _climber.Polish(composition, cancellationToken);
+                Interlocked.Increment(ref _polishedCount);
+                if (polished.TotalScore <= composition.TotalScore)
+                {
+                    continue;
+                }
+
+                if (_invalidator.ShouldReject(polished))
+                {
+                    continue;
+                }
+
+                _keeper.TryReplace(composition, polished);
+            }
+
+            // Polish is much slower than random generation; yield once per pass over the top list.
+            await Task.Delay(1, cancellationToken);
+        }
+    }
+
     private void OnUiRefreshTimerTick(object? sender, EventArgs e) =>
         Dispatcher.UIThread.InvokeAsync(FlushUi, DispatcherPriority.Background);
 
     private void FlushUi()
     {
         GeneratedCount = _generatedCount;
+        PolishedCount = _polishedCount;
         DuplicateRejectedCount = _duplicateRejectedCount;
 
         if (_keeper.Revision == _lastRenderedRevision)
@@ -264,6 +431,8 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         {
             TopCompositions.Add(GroupCompositionCardViewModel.FromModel(composition));
         }
+
+        HasTopCompositions = TopCompositions.Count > 0;
     }
 
     private void ClearGenerationState()
@@ -271,12 +440,15 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         StopUiRefreshTimer();
         _keeper.Clear();
         Interlocked.Exchange(ref _generatedCount, 0);
+        Interlocked.Exchange(ref _polishedCount, 0);
         Interlocked.Exchange(ref _duplicateRejectedCount, 0);
         _lastRenderedRevision = 0;
         GeneratedCount = 0;
+        PolishedCount = 0;
         DuplicateRejectedCount = 0;
         RecentTopCompositionInsertedTexts.Clear();
         HasRecentInsertions = false;
+        HasTopCompositions = false;
         TopCompositions.Clear();
     }
 

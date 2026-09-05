@@ -563,3 +563,52 @@ public sealed class HillClimbingWrapperContractTests : GroupCompositionProducerC
             ]),
             iterations: 25);
 }
+
+public sealed class MatrixWindowScanStrategyContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new MatrixWindowScanStrategy(
+            students,
+            groupSizes,
+            new GroupCompositionScorer(
+            [
+                new MutualMatch(3),
+                new PartialMatch(1),
+                new NegativeMatch(3),
+            ]));
+}
+
+public sealed class EdgeContractionMatchingStrategyContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new EdgeContractionMatchingStrategy(
+            students,
+            groupSizes,
+            new GroupCompositionScorer(
+            [
+                new MutualMatch(3),
+                new PartialMatch(1),
+                new NegativeMatch(3),
+            ]));
+}
+
+public sealed class SimulatedAnnealingWrapperContractTests : GroupCompositionProducerContractTests
+{
+    protected override IGroupCompositionProducer CreateProducer(
+        StudentList students,
+        GroupSizeDistribution groupSizes)
+        => new SimulatedAnnealingWrapper(
+            students,
+            groupSizes,
+            new GroupCompositionScorer(
+            [
+                new MutualMatch(3),
+                new PartialMatch(1),
+                new NegativeMatch(3),
+            ]),
+            SimulatedAnnealingConfig.Fast);
+}

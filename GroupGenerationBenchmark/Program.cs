@@ -31,15 +31,27 @@ var scorer = new GroupCompositionScorer(
 
 var strategies = new List<(string Name, IGroupCompositionProducer Producer)>
 {
-    // ("RandomShuffle", new RandomShuffleStrategy(students, sizes)),
-    // ("BreadthFirstGreedy", new BreadthFirstGreedyStrategy(students, sizes)),
-    // ("DepthFirstGreedy", new DepthFirstGreedyStrategy(students, sizes)),
-    // ("MutualPairFirst", new MutualPairFirstStrategy(students, sizes)),
-    // ("OrphanFirst", new OrphanFirstStrategy(students, sizes)),
-    // ("TriadFirst", new TriadFirstStrategy(students, sizes)),
-    // ("IslandFirst", new IslandFirstStrategy(students, sizes)),
+    ("RandomShuffle", new RandomShuffleStrategy(students, sizes)),
+    ("BreadthFirstGreedy", new BreadthFirstGreedyStrategy(students, sizes)),
+    ("DepthFirstGreedy", new DepthFirstGreedyStrategy(students, sizes)),
+    ("MutualPairFirst", new MutualPairFirstStrategy(students, sizes)),
+    ("OrphanFirst", new OrphanFirstStrategy(students, sizes)),
+    ("TriadFirst", new TriadFirstStrategy(students, sizes)),
+    ("IslandFirst", new IslandFirstStrategy(students, sizes)),
+    ("MatrixWindowScan", new MatrixWindowScanStrategy(students, sizes, scorer)),
+    ("EdgeContraction", new EdgeContractionMatchingStrategy(students, sizes, scorer)),
     ("HillClimbing", new HillClimbingWrapper(students, sizes, scorer)),
-    // ("RoundRobin", new RoundRobinStrategy(students, sizes)),
+    ("SimulatedAnnealing", new SimulatedAnnealingWrapper(
+        students,
+        sizes,
+        scorer,
+        // Full default schedule is too heavy for 100k generations; keep SA comparable to hill-climbing cost.
+        new SimulatedAnnealingConfig(
+            initialTemperature: 50,
+            coolingRate: 0.9,
+            minTemperature: 0.5,
+            stepsPerTemp: Math.Max(1, students.Students.Count)))),
+    ("RoundRobin", new RoundRobinStrategy(students, sizes)),
 };
 
 PrintHeader(fixtureName, students, sizes, Generations);
