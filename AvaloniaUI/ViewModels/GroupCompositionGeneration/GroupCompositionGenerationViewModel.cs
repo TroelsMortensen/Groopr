@@ -23,6 +23,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 {
     private const int UiRefreshIntervalMs = 250;
     private const int YieldEveryIterations = 1000;
+    private const int PolishIterations = 15;
 
     private readonly InputConfiguration _inputConfiguration;
     private readonly IDialogService _dialogService;
@@ -111,7 +112,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         _scorer = ScorerConfigurationMapper.ToScorer(inputConfiguration.EnabledScorers);
         _invalidator = InvalidatorConfigurationMapper.ToInvalidator(inputConfiguration.EnabledInvalidators);
         _producer = new RandomShuffleStrategy(studentList, groupSizeDistribution);
-        _climber = new HillClimbingWrapper(_scorer);
+        _climber = new HillClimbingWrapper(_scorer, iterations: PolishIterations);
 
         _uiRefreshTimer = new DispatcherTimer
         {
