@@ -12,7 +12,7 @@ public class RoundRobinStrategy : IGroupCompositionProducer
         StudentList studentList,
         GroupSizeDistribution groupSizes,
         GroupCompositionScorer scorer,
-        int phaseLength = 1000)
+        int phaseLength = 500)
         : this(
             [
                 new MutualPairFirstStrategy(studentList, groupSizes),
@@ -26,7 +26,7 @@ public class RoundRobinStrategy : IGroupCompositionProducer
 
     public RoundRobinStrategy(
         IReadOnlyList<IGroupCompositionProducer> producers,
-        int phaseLength = 1000)
+        int phaseLength = 500)
     {
         ArgumentNullException.ThrowIfNull(producers);
 

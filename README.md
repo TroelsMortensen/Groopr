@@ -99,10 +99,6 @@ These strategies need a `GroupCompositionScorer` and use affinity / score impact
 
 **SimulatedAnnealingWrapper** — Like hill climbing, but accepts some worse swaps via the Metropolis rule while temperature cools, tracking a global best layout separately from the current state.
 
-### Planned
-
-**SlidingWindow** — Planned; not implemented yet.
-
 ## User interface
 
 The desktop app is a linear wizard. Screenshots will go under `docs/images/`—placeholders below.
@@ -205,24 +201,13 @@ Logic is developed with a dual-agent TDD workflow: one agent writes unit tests f
 - xUnit
 - Blazor WASM planned for a future web UI
 
-## Getting started
-
-```bash
-dotnet build Groopr.sln
-dotnet run --project AvaloniaUI
-dotnet test UnitTests
-dotnet run --project GroupGenerationBenchmark
-```
+## Importing student data
 
 CSV import expects columns: `StudentNumber`, `Name`, `PositiveWishes`, `PreviousGroupMembers`, `NegativeWishes` (wish/member lists are comma-separated student numbers). The app can download a template with example rows.
 
 ## Benchmarks
 
 Condensed results from `GroupGenerationBenchmark` (full histograms omitted). Regenerate with:
-
-```bash
-dotnet run --project GroupGenerationBenchmark
-```
 
 ### 30 students, 100,000 generations
 
@@ -235,15 +220,15 @@ Fixture based on TestData (30 students). Blueprint `[4, 4, 4, 4, 4, 4, 3, 3]`. S
 | RandomShuffle | 284.5ms | 351,511 |
 | BreadthFirstGreedy | 726.0ms | 137,744 |
 | DepthFirstGreedy | 507.7ms | 196,951 |
-| MutualPairFirst | 1.091s | 91,686 |
 | OrphanFirst | 714.3ms | 139,997 |
-| TriadFirst | 1.869s | 53,513 |
+| MutualPairFirst | 1.091s | 91,686 |
+| RoundRobin | 1.198s | 83,486 |
 | IslandFirst | 1.619s | 61,779 |
+| TriadFirst | 1.869s | 53,513 |
+| HillClimbing | 25.045s | 3,993 |
 | MatrixWindowScan | 88.199s | 1,134 |
 | EdgeContraction | 199.341s | 502 |
-| HillClimbing | 25.045s | 3,993 |
 | SimulatedAnnealing | 578.218s | 173 |
-| RoundRobin | 1.198s | 83,486 |
 
 **Score quality**
 
@@ -302,7 +287,6 @@ Fixture: Students50. Blueprint `[4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3]`. Same s
 
 ## Roadmap
 
-- More student criteria (DISC profile, physical location)
-- SlidingWindow generation strategy
+- More student criteria (DISC profile, physical location, group work type preferences)
 - Additional scorers and invalidators
 - Blazor WASM web UI
