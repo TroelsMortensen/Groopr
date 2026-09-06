@@ -22,7 +22,7 @@ namespace AvaloniaUI.ViewModels.GroupCompositionGeneration;
 public partial class GroupCompositionGenerationViewModel : ViewModelBase
 {
     private const int UiRefreshIntervalMs = 250;
-    private const int YieldEveryIterations = 1000;
+    private const int YieldEveryIterations = 2500;
     private const int PolishIterations = 15;
 
     private readonly InputConfiguration _inputConfiguration;
