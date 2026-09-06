@@ -1,846 +1,308 @@
+# Groopr
 
+Groopr is a desktop app that helps teachers divide students into groups.
 
+Students can supply optional preferences—who they want to work with, who they prefer not to, and who they were grouped with previously. Groopr generates many candidate **group compositions**, scores them against configurable rules, and keeps a rolling top list so the teacher can pick a strong partition.
 
-## Benchmarking
+Detailed requirements live in [SRS.md](SRS.md).
 
-The latest benchmark results are found below.
+## Domain concepts
 
-### 30 students, 100.000 generations
-The data set is 30 students, based on one of the files in the TestData folder. Each group generation strategy is run 100.000 times.
+- **Student** — number, optional name, positive wishes, negative wishes, and previous group members.
+- **Group** — a list of students.
+- **GroupComposition** — a full partition of the class into groups, plus a total score once evaluated.
+- **Blueprint** — the exact group sizes for this run (e.g. `[4, 4, 3]`). Sizes must sum to the number of students; every generated composition matches this template.
 
-C:/MyStuff/Development/Groopr/GroupGenerationBenchmark/bin/Debug/net10.0/GroupGenerationBenchmark.exe
-Group composition generation benchmark
-Fixture:     Students50 (30 students)
-Blueprint:   [4, 4, 4, 4, 4, 4, 3, 3]
-Scorers:     MutualMatch=3, PartialMatch=1, NegativeMatch=3
-Generations: 100,000
+A composition is **structurally valid** when it is an exact partition of the student pool into the blueprint (no missing or duplicate students). That is separate from **hard rejects** (configurable invalidation rules), which can discard a structurally valid composition before scoring.
 
-=== Generation speed ===
-Strategy                    Elapsed    Rate (comp/s)
-----------------------------------------------------
-RandomShuffle               284.5ms          351,511
-BreadthFirstGreedy          726.0ms          137,744
-DepthFirstGreedy            507.7ms          196,951
-MutualPairFirst              1.091s           91,686
-OrphanFirst                 714.3ms          139,997
-TriadFirst                   1.869s           53,513
-IslandFirst                  1.619s           61,779
-MatrixWindowScan            88.199s            1,134
-EdgeContraction            199.341s              502
-HillClimbing                25.045s            3,993
-SimulatedAnnealing         578.218s              173
-RoundRobin                   1.198s           83,486
+Two compositions are treated as the same if they contain the same groups by student number only. Order of groups and of students within a group does not matter.
 
-=== Score quality ===
-Strategy                    Max       Mean     Median     StdDev      Min
-------------------------------------------------------------------------
-RandomShuffle                16       4.16          4       2.98       -7
-BreadthFirstGreedy           29      16.91         17       3.62        0
-DepthFirstGreedy             28      15.45         16       3.51       -1
-MutualPairFirst              28      19.86         20       2.62        8
-OrphanFirst                  25      18.41         19       2.59        6
-TriadFirst                   25      17.03         17       3.34        6
-IslandFirst                  29      16.92         17       3.64        1
-MatrixWindowScan             29      25.66         26       1.35       19
-EdgeContraction              29      26.12         26       1.27       20
-HillClimbing                 29      22.81         23       1.99       14
-SimulatedAnnealing           28      21.24         21       1.86       14
-RoundRobin                   28      18.43         19       3.09        5
+## How search works
 
-=== Score histograms ===
+Groopr uses a Monte Carlo loop with elitism (the “Dinner” engine):
 
-RandomShuffle (n=100,000)
-        -7 :       4  #
-        -6 :      42  #
-        -5 :     117  #
-        -4 :     325  #
-        -3 :     727  ##
-        -2 :   1,627  #####
-        -1 :   3,124  #########
-         0 :   5,035  ###############
-         1 :   7,241  #####################
-         2 :  10,169  ##############################
-         3 :  12,586  #####################################
-         4 :  13,762  ########################################
-         5 :  13,131  ######################################
-         6 :  11,103  ################################
-         7 :   8,240  ########################
-         8 :   5,622  ################
-         9 :   3,455  ##########
-        10 :   1,939  ######
-        11 :     938  ###
-        12 :     495  #
-        13 :     202  #
-        14 :      74  #
-        15 :      25  #
-        16 :      17  #
+1. A **producer** yields an infinite stream of structurally valid, unscored compositions.
+2. **Hard rejects** discard invalid candidates before scoring.
+3. The **scoring pipeline** assigns a fitness score.
+4. The **TopCompositionKeeper** retains a Top 5 list. A new composition replaces the lowest score if it is better and not a duplicate partition.
 
-BreadthFirstGreedy (n=100,000)
-         0 :       2  #
-         2 :       5  #
-         3 :      13  #
-         4 :      28  #
-         5 :      80  #
-         6 :     158  #
-         7 :     396  #
-         8 :     744  ###
-         9 :   1,242  ####
-        10 :   2,037  #######
-        11 :   3,135  ###########
-        12 :   4,271  ###############
-        13 :   5,669  ####################
-        14 :   7,091  ##########################
-        15 :   8,341  ##############################
-        16 :   9,632  ###################################
-        17 :  10,663  ######################################
-        18 :  11,110  ########################################
-        19 :  10,541  ######################################
-        20 :   9,007  ################################
-        21 :   6,712  ########################
-        22 :   4,363  ################
-        23 :   2,530  #########
-        24 :   1,309  #####
-        25 :     615  ##
-        26 :     238  #
-        27 :      55  #
-        28 :      12  #
-        29 :       1  #
+Generation runs until you stop it. Afterward, a separate **Polish** pass can hill-climb each retained composition in place (~15 random inter-group swaps). Polish never pushes compositions out of the top list; it only improves slots that get strictly better (and still pass hard rejects). Polish and generation are mutually exclusive.
 
-DepthFirstGreedy (n=100,000)
-        -1 :       1  #
-         1 :       3  #
-         2 :       9  #
-         3 :      21  #
-         4 :      64  #
-         5 :     117  #
-         6 :     342  #
-         7 :     729  ###
-         8 :   1,439  #####
-         9 :   2,383  ########
-        10 :   3,607  #############
-        11 :   5,032  ##################
-        12 :   6,612  #######################
-        13 :   8,172  #############################
-        14 :   9,607  ##################################
-        15 :  10,686  ######################################
-        16 :  11,321  ########################################
-        17 :  10,688  ######################################
-        18 :   9,416  #################################
-        19 :   7,555  ###########################
-        20 :   5,308  ###################
-        21 :   3,389  ############
-        22 :   1,949  #######
-        23 :     962  ###
-        24 :     442  ##
-        25 :     115  #
-        26 :      27  #
-        27 :       3  #
-        28 :       1  #
+```mermaid
+flowchart LR
+  Producer[Producer_stream] --> Gate[Hard_rejects]
+  Gate -->|pass| Score[Scoring_pipeline]
+  Gate -->|fail| Drop[Discard]
+  Score --> Keep[TopCompositionKeeper]
+  Keep --> UI[Top_5_in_UI]
+```
 
-MutualPairFirst (n=100,000)
-         8 :       4  #
-         9 :      21  #
-        10 :      96  #
-        11 :     239  #
-        12 :     523  #
-        13 :     946  ##
-        14 :   1,453  ###
-        15 :   2,149  #####
-        16 :   3,694  #########
-        17 :   6,725  ################
-        18 :  11,339  ###########################
-        19 :  15,684  #####################################
-        20 :  17,021  ########################################
-        21 :  14,818  ###################################
-        22 :  10,604  #########################
-        23 :   6,851  ################
-        24 :   4,399  ##########
-        25 :   2,259  #####
-        26 :     897  ##
-        27 :     251  #
-        28 :      27  #
+## Scoring and invalidation
 
-OrphanFirst (n=100,000)
-         6 :       2  #
-         7 :       3  #
-         8 :      16  #
-         9 :      80  #
-        10 :     219  #
-        11 :     513  #
-        12 :   1,117  ###
-        13 :   2,027  #####
-        14 :   3,779  ##########
-        15 :   5,817  ###############
-        16 :   8,714  ######################
-        17 :  11,488  #############################
-        18 :  14,349  #####################################
-        19 :  15,716  ########################################
-        20 :  14,571  #####################################
-        21 :  11,122  ############################
-        22 :   6,581  #################
-        23 :   2,901  #######
-        24 :     825  ##
-        25 :     160  #
+**Scorers** (weights configurable; at least one must be enabled):
 
-TriadFirst (n=100,000)
-         6 :       1  #
-         7 :      13  #
-         8 :      56  #
-         9 :     282  #
-        10 :     990  ####
-        11 :   2,511  #########
-        12 :   5,464  ####################
-        13 :   8,008  #############################
-        14 :  10,032  ####################################
-        15 :   9,631  ###################################
-        16 :   8,241  ##############################
-        17 :   7,337  ##########################
-        18 :   8,351  ##############################
-        19 :  10,357  #####################################
-        20 :  11,136  ########################################
-        21 :   9,132  #################################
-        22 :   5,505  ####################
-        23 :   2,311  ########
-        24 :     572  ##
-        25 :      70  #
+| Rule | Effect |
+| --- | --- |
+| Mutual match | Points when two students listed each other positively and share a group |
+| Partial match | Points when a one-way positive wish is satisfied |
+| Negative match | Subtracts points when students with a negative wish share a group |
 
-IslandFirst (n=100,000)
-         1 :       2  #
-         2 :       5  #
-         3 :      16  #
-         4 :      33  #
-         5 :      85  #
-         6 :     194  #
-         7 :     395  #
-         8 :     748  ###
-         9 :   1,295  #####
-        10 :   2,019  #######
-        11 :   3,072  ###########
-        12 :   4,316  ################
-        13 :   5,773  #####################
-        14 :   7,125  ##########################
-        15 :   8,193  ##############################
-        16 :   9,605  ###################################
-        17 :  10,529  ######################################
-        18 :  10,947  ########################################
-        19 :  10,625  #######################################
-        20 :   8,867  ################################
-        21 :   6,815  #########################
-        22 :   4,462  ################
-        23 :   2,537  #########
-        24 :   1,352  #####
-        25 :     664  ##
-        26 :     237  #
-        27 :      78  #
-        28 :      10  #
-        29 :       1  #
+Scores are additive per group; a composition’s total is the sum of its groups’ contributions.
 
-MatrixWindowScan (n=100,000)
-        19 :       5  #
-        20 :      57  #
-        21 :     276  #
-        22 :   1,277  ##
-        23 :   4,486  #######
-        24 :  11,809  #################
-        25 :  25,753  ######################################
-        26 :  27,421  ########################################
-        27 :  23,129  ##################################
-        28 :   5,077  #######
-        29 :     710  #
+**Invalidators** (hard rejects before scoring):
 
-EdgeContraction (n=100,000)
-        20 :       3  #
-        21 :      31  #
-        22 :     279  #
-        23 :   1,921  ###
-        24 :   8,135  ###########
-        25 :  20,655  #############################
-        26 :  27,651  ######################################
-        27 :  28,836  ########################################
-        28 :  10,801  ###############
-        29 :   1,688  ##
+| Rule | Effect |
+| --- | --- |
+| Max students from previous group | Rejects compositions that reuse too many classmates from a prior group |
 
-HillClimbing (n=100,000)
-        14 :       9  #
-        15 :      44  #
-        16 :     150  #
-        17 :     515  #
-        18 :   1,436  ###
-        19 :   3,546  #######
-        20 :   6,940  ##############
-        21 :  11,875  ########################
-        22 :  16,800  ##################################
-        23 :  20,019  ########################################
-        24 :  18,642  #####################################
-        25 :  12,573  #########################
-        26 :   5,593  ###########
-        27 :   1,635  ###
-        28 :     211  #
-        29 :      12  #
+## Generation strategies
 
-SimulatedAnnealing (n=100,000)
-        14 :       1  #
-        15 :      23  #
-        16 :     237  #
-        17 :   1,226  ##
-        18 :   4,498  ########
-        19 :  11,104  ####################
-        20 :  18,627  ##################################
-        21 :  21,908  ########################################
-        22 :  18,278  #################################
-        23 :  12,559  #######################
-        24 :   6,913  #############
-        25 :   3,229  ######
-        26 :   1,094  ##
-        27 :     265  #
-        28 :      38  #
+All strategies implement the same producer interface and return structurally valid partitions. Wish-aware strategies typically randomize once per composition so the Monte Carlo loop explores variety.
 
-RoundRobin (n=100,000)
-         5 :       1  #
-         6 :       2  #
-         7 :       5  #
-         8 :      38  #
-         9 :     126  #
-        10 :     421  #
-        11 :   1,071  ###
-        12 :   2,328  #######
-        13 :   3,754  ###########
-        14 :   4,987  ##############
-        15 :   5,863  #################
-        16 :   6,774  ###################
-        17 :   8,807  #########################
-        18 :  11,250  ################################
-        19 :  14,058  ########################################
-        20 :  14,085  ########################################
-        21 :  11,628  #################################
-        22 :   7,628  ######################
-        23 :   4,038  ###########
-        24 :   1,928  #####
-        25 :     851  ##
-        26 :     282  #
-        27 :      65  #
-        28 :      10  #
+The desktop app currently generates with **RoundRobin** (see below). Other strategies are available in Logic and in the benchmark project. Polish uses **HillClimbing** on the retained top list only.
 
-Process finished with exit code 0.
+### Baseline
 
+**RandomShuffle** — Shuffles the student pool and slices it sequentially into the blueprint sizes. Does not use wishes while generating.
 
+### Wish-greedy fill
 
-### 50 students, 100.000 generations
+**BreadthFirstGreedy** — Seeds each group from the shuffled pool, then expands by taking an available positive wish from the earliest group member who still has one. Falls back to the next unassigned student when stuck.
 
-C:/MyStuff/Development/Groopr/GroupGenerationBenchmark/bin/Debug/net10.0/GroupGenerationBenchmark.exe
-Group composition generation benchmark
-Fixture:     Students50 (50 students)
-Blueprint:   [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3]
-Scorers:     MutualMatch=3, PartialMatch=1, NegativeMatch=3
-Generations: 100,000
+**DepthFirstGreedy** — Same idea, but always expands from the most recently added student (a chain walk). When that tip has no available wishes, picks a random unassigned student and continues from them.
 
-=== Generation speed ===
-Strategy                    Elapsed    Rate (comp/s)
-----------------------------------------------------
-RandomShuffle               406.3ms          246,142
-BreadthFirstGreedy           1.125s           88,857
-DepthFirstGreedy            796.5ms          125,543
-MutualPairFirst              1.582s           63,203
-OrphanFirst                  1.395s           71,683
-TriadFirst                   3.043s           32,859
-IslandFirst                  2.655s           37,670
-MatrixWindowScan           273.177s              366
-EdgeContraction            628.281s              159
-HillClimbing                32.890s            3,040
-SimulatedAnnealing        1136.364s               88
-RoundRobin                   1.868s           53,530
+### Seeding variants
 
-=== Score quality ===
-Strategy                    Max       Mean     Median     StdDev      Min
-------------------------------------------------------------------------
-RandomShuffle                24       3.07          3       4.51      -24
-BreadthFirstGreedy           68      50.32         51       5.74       22
-DepthFirstGreedy             67      44.49         45       6.21       16
-MutualPairFirst              69      56.78         57       4.97       30
-OrphanFirst                  65      49.52         50        4.9       24
-TriadFirst                   68      58.16         59       4.56       33
-IslandFirst                  68      50.38         51       5.72       21
-MatrixWindowScan             68      62.87         63       2.75       45
-EdgeContraction              69      66.65         67       1.72       58
-HillClimbing                 68      59.22         60       3.68       37
-SimulatedAnnealing           69      57.06         58       4.72       34
-RoundRobin                   68      54.85         55       6.12       24
+These strategies choose smarter seeds, then typically fill with BFS-style wish expansion.
 
-=== Score histograms ===
+**MutualPairFirst** — Finds mutual positive-wish pairs, seeds a group with a pair when size allows, then fills remaining seats greedily.
 
-RandomShuffle (n=100,000)
-       -24 :       1  #
-       -20 :       1  #
-       -18 :       5  #
-       -17 :      19  #
-       -16 :      15  #
-       -15 :      25  #
-       -14 :      19  #
-       -13 :      21  #
-       -12 :     183  #
-       -11 :     308  #
-       -10 :     267  #
-        -9 :     341  #
-        -8 :     415  #
-        -7 :     294  #
-        -6 :   1,664  ######
-        -5 :   2,800  ##########
-        -4 :   2,288  ########
-        -3 :   2,910  ##########
-        -2 :   3,255  ############
-        -1 :   2,493  #########
-         0 :   6,700  ########################
-         1 :  10,101  ####################################
-         2 :   8,146  #############################
-         3 :   9,680  ###################################
-         4 :  11,153  ########################################
-         5 :   8,589  ###############################
-         6 :   7,198  ##########################
-         7 :   6,494  #######################
-         8 :   4,634  #################
-         9 :   3,276  ############
-        10 :   2,513  #########
-        11 :   1,568  ######
-        12 :   1,018  ####
-        13 :     646  ##
-        14 :     405  #
-        15 :     235  #
-        16 :     144  #
-        17 :      75  #
-        18 :      45  #
-        19 :      27  #
-        20 :      20  #
-        21 :       3  #
-        22 :       3  #
-        23 :       2  #
-        24 :       1  #
+**OrphanFirst** — Orders students by how often others wish for them (least wished-for first), seeds each group with an isolated student, then fills greedily.
 
-BreadthFirstGreedy (n=100,000)
-        22 :       2  #
-        24 :       4  #
-        25 :       5  #
-        26 :       8  #
-        27 :       7  #
-        28 :      19  #
-        29 :      26  #
-        30 :      51  #
-        31 :      70  #
-        32 :     121  #
-        33 :     174  #
-        34 :     208  #
-        35 :     312  ##
-        36 :     406  ##
-        37 :     599  ###
-        38 :     846  #####
-        39 :   1,090  ######
-        40 :   1,371  ########
-        41 :   1,767  ##########
-        42 :   2,212  #############
-        43 :   2,797  ################
-        44 :   3,391  ###################
-        45 :   4,000  #######################
-        46 :   4,728  ###########################
-        47 :   5,388  ###############################
-        48 :   5,864  #################################
-        49 :   6,564  #####################################
-        50 :   6,829  #######################################
-        51 :   7,024  ########################################
-        52 :   6,899  #######################################
-        53 :   6,809  #######################################
-        54 :   6,199  ###################################
-        55 :   5,598  ################################
-        56 :   4,887  ############################
-        57 :   4,021  #######################
-        58 :   3,142  ##################
-        59 :   2,421  ##############
-        60 :   1,677  ##########
-        61 :   1,042  ######
-        62 :     696  ####
-        63 :     386  ##
-        64 :     206  #
-        65 :      91  #
-        66 :      35  #
-        67 :       6  #
-        68 :       2  #
+**TriadFirst** — Detects directed wish triangles (A→B→C→A), seeds with a triangle when group size ≥ 3 (otherwise mutual pair / random), then fills greedily.
 
-DepthFirstGreedy (n=100,000)
-        16 :       2  #
-        18 :       4  #
-        19 :       6  #
-        20 :      10  #
-        21 :      18  #
-        22 :      25  #
-        23 :      40  #
-        24 :      60  #
-        25 :      72  #
-        26 :     111  #
-        27 :     210  #
-        28 :     265  ##
-        29 :     349  ##
-        30 :     499  ###
-        31 :     689  ####
-        32 :     931  ######
-        33 :   1,178  #######
-        34 :   1,459  #########
-        35 :   1,968  ############
-        36 :   2,364  ###############
-        37 :   2,884  ##################
-        38 :   3,474  ######################
-        39 :   4,061  #########################
-        40 :   4,617  #############################
-        41 :   5,364  #################################
-        42 :   5,620  ###################################
-        43 :   5,873  #####################################
-        44 :   6,401  ########################################
-        45 :   6,421  ########################################
-        46 :   6,397  ########################################
-        47 :   6,266  #######################################
-        48 :   5,820  ####################################
-        49 :   5,269  #################################
-        50 :   4,676  #############################
-        51 :   4,031  #########################
-        52 :   3,324  #####################
-        53 :   2,550  ################
-        54 :   2,057  #############
-        55 :   1,528  ##########
-        56 :   1,105  #######
-        57 :     754  #####
-        58 :     525  ###
-        59 :     331  ##
-        60 :     186  #
-        61 :     108  #
-        62 :      49  #
-        63 :      33  #
-        64 :      10  #
-        65 :       4  #
-        66 :       1  #
-        67 :       1  #
+**IslandFirst** — Finds connected components in the undirected positive-wish graph (“friend islands”), prefers seeding with the largest island that still fits, then fills greedily.
 
-MutualPairFirst (n=100,000)
-        30 :       1  #
-        31 :       1  #
-        33 :       4  #
-        34 :       8  #
-        35 :       9  #
-        36 :      15  #
-        37 :      34  #
-        38 :      35  #
-        39 :      76  #
-        40 :     111  #
-        41 :     145  #
-        42 :     262  #
-        43 :     394  ##
-        44 :     486  ##
-        45 :     694  ####
-        46 :     954  #####
-        47 :   1,291  #######
-        48 :   1,729  #########
-        49 :   2,387  ############
-        50 :   2,707  ##############
-        51 :   3,393  #################
-        52 :   4,200  #####################
-        53 :   4,893  #########################
-        54 :   6,242  ################################
-        55 :   6,849  ###################################
-        56 :   7,131  ####################################
-        57 :   7,719  #######################################
-        58 :   7,619  #######################################
-        59 :   7,809  ########################################
-        60 :   7,820  ########################################
-        61 :   7,379  ######################################
-        62 :   6,154  ###############################
-        63 :   5,056  ##########################
-        64 :   3,220  ################
-        65 :   1,874  ##########
-        66 :     934  #####
-        67 :     327  ##
-        68 :      36  #
-        69 :       2  #
+### Scorer-guided
 
-OrphanFirst (n=100,000)
-        24 :       1  #
-        26 :       1  #
-        27 :       1  #
-        28 :       2  #
-        29 :       5  #
-        30 :      12  #
-        31 :      16  #
-        32 :      32  #
-        33 :      62  #
-        34 :     101  #
-        35 :     157  #
-        36 :     262  #
-        37 :     389  ##
-        38 :     580  ###
-        39 :     919  #####
-        40 :   1,288  ######
-        41 :   1,915  ##########
-        42 :   2,438  ############
-        43 :   3,248  ################
-        44 :   4,068  ####################
-        45 :   5,028  #########################
-        46 :   5,814  #############################
-        47 :   6,676  #################################
-        48 :   7,394  #####################################
-        49 :   7,788  #######################################
-        50 :   7,999  ########################################
-        51 :   7,824  #######################################
-        52 :   7,542  ######################################
-        53 :   6,927  ###################################
-        54 :   5,889  #############################
-        55 :   4,801  ########################
-        56 :   3,752  ###################
-        57 :   2,751  ##############
-        58 :   1,824  #########
-        59 :   1,166  ######
-        60 :     741  ####
-        61 :     343  ##
-        62 :     157  #
-        63 :      64  #
-        64 :      18  #
-        65 :       5  #
+These strategies need a `GroupCompositionScorer` and use affinity / score impact while building groups.
 
-TriadFirst (n=100,000)
-        33 :       1  #
-        34 :       1  #
-        35 :       1  #
-        36 :       2  #
-        37 :       8  #
-        38 :      10  #
-        39 :      20  #
-        40 :      24  #
-        41 :      53  #
-        42 :      78  #
-        43 :     157  #
-        44 :     224  #
-        45 :     304  #
-        46 :     492  ##
-        47 :     677  ###
-        48 :   1,021  #####
-        49 :   1,409  ######
-        50 :   1,804  ########
-        51 :   2,368  ###########
-        52 :   3,010  ##############
-        53 :   3,731  #################
-        54 :   4,631  #####################
-        55 :   5,969  ###########################
-        56 :   6,975  ################################
-        57 :   7,674  ###################################
-        58 :   8,331  ######################################
-        59 :   8,179  #####################################
-        60 :   8,440  #######################################
-        61 :   8,726  ########################################
-        62 :   7,992  #####################################
-        63 :   7,090  #################################
-        64 :   5,268  ########################
-        65 :   3,114  ##############
-        66 :   1,588  #######
-        67 :     564  ###
-        68 :      64  #
+**MatrixWindowScan** — Scores all student dyads, seeds each group with the best still-available dyad, then greedily expands by marginal score impact until the blueprint size is filled.
 
-IslandFirst (n=100,000)
-        21 :       1  #
-        23 :       1  #
-        24 :       2  #
-        25 :      10  #
-        26 :      14  #
-        27 :      13  #
-        28 :      16  #
-        29 :      28  #
-        30 :      45  #
-        31 :      72  #
-        32 :      99  #
-        33 :     141  #
-        34 :     211  #
-        35 :     289  ##
-        36 :     426  ##
-        37 :     587  ###
-        38 :     829  #####
-        39 :   1,034  ######
-        40 :   1,359  ########
-        41 :   1,711  ##########
-        42 :   2,215  #############
-        43 :   2,594  ###############
-        44 :   3,329  ###################
-        45 :   4,030  #######################
-        46 :   4,810  ############################
-        47 :   5,283  ##############################
-        48 :   5,930  ##################################
-        49 :   6,490  #####################################
-        50 :   6,958  ########################################
-        51 :   6,876  #######################################
-        52 :   6,968  ########################################
-        53 :   6,943  ########################################
-        54 :   6,301  ####################################
-        55 :   5,603  ################################
-        56 :   4,794  ############################
-        57 :   4,120  ########################
-        58 :   3,271  ###################
-        59 :   2,361  ##############
-        60 :   1,681  ##########
-        61 :   1,137  #######
-        62 :     696  ####
-        63 :     397  ##
-        64 :     200  #
-        65 :      81  #
-        66 :      31  #
-        67 :      11  #
-        68 :       2  #
+**EdgeContractionMatching** — Agglomerative clustering: students start as singletons; highest-affinity edges are contracted while respecting max group size, then members are rebalanced to the exact blueprint.
 
-MatrixWindowScan (n=100,000)
-        45 :       1  #
-        46 :       2  #
-        47 :       3  #
-        48 :       1  #
-        49 :      13  #
-        50 :      38  #
-        51 :      55  #
-        52 :     106  #
-        53 :     236  #
-        54 :     383  #
-        55 :     596  ##
-        56 :     996  ###
-        57 :   1,652  ####
-        58 :   2,769  #######
-        59 :   4,385  ###########
-        60 :   6,707  ##################
-        61 :   9,345  ########################
-        62 :  12,512  #################################
-        63 :  15,044  #######################################
-        64 :  15,322  ########################################
-        65 :  13,905  ####################################
-        66 :   9,106  ########################
-        67 :   5,074  #############
-        68 :   1,749  #####
+### Meta and refinement
 
-EdgeContraction (n=100,000)
-        58 :      51  #
-        59 :     225  #
-        60 :     155  #
-        61 :     124  #
-        62 :     180  #
-        63 :      60  #
-        64 :   8,466  #############
-        65 :  25,273  ######################################
-        66 :   9,542  ##############
-        67 :  14,624  ######################
-        68 :  26,437  ########################################
-        69 :  14,863  ######################
+**RoundRobin** — Cycles through child strategies in phases (default: MutualPairFirst → OrphanFirst → TriadFirst → MatrixWindowScan, 1000 compositions each) so the search budget is shared. This is the UI default producer.
 
-HillClimbing (n=100,000)
-        37 :       1  #
-        39 :       1  #
-        41 :       3  #
-        42 :       2  #
-        43 :      14  #
-        44 :      21  #
-        45 :      44  #
-        46 :      85  #
-        47 :     147  #
-        48 :     285  #
-        49 :     409  #
-        50 :     756  ###
-        51 :   1,127  ####
-        52 :   1,671  ######
-        53 :   2,582  #########
-        54 :   3,583  #############
-        55 :   4,911  ##################
-        56 :   6,269  #######################
-        57 :   7,885  #############################
-        58 :   9,418  ##################################
-        59 :  10,141  #####################################
-        60 :  11,057  ########################################
-        61 :  10,841  #######################################
-        62 :   9,613  ###################################
-        63 :   7,881  #############################
-        64 :   5,629  ####################
-        65 :   3,211  ############
-        66 :   1,720  ######
-        67 :     613  ##
-        68 :      80  #
+**HillClimbingWrapper** — Refinement via random student swaps between groups, keeping improvements (per-group delta scoring). Can wrap an inner producer, or polish an existing composition. The UI Polish button uses a short polish-only run (~15 iterations).
 
-SimulatedAnnealing (n=100,000)
-        34 :       1  #
-        35 :       1  #
-        36 :       1  #
-        37 :       3  #
-        38 :       7  #
-        39 :      14  #
-        40 :      35  #
-        41 :      73  #
-        42 :     154  #
-        43 :     235  #
-        44 :     387  ##
-        45 :     512  ###
-        46 :     733  ####
-        47 :   1,147  ######
-        48 :   1,554  ########
-        49 :   2,177  ###########
-        50 :   2,643  #############
-        51 :   3,337  ################
-        52 :   3,984  ###################
-        53 :   4,929  ########################
-        54 :   5,964  #############################
-        55 :   6,966  ##################################
-        56 :   7,314  ####################################
-        57 :   7,769  ######################################
-        58 :   8,032  #######################################
-        59 :   7,963  #######################################
-        60 :   8,189  ########################################
-        61 :   7,641  #####################################
-        62 :   6,455  ################################
-        63 :   5,202  #########################
-        64 :   3,414  #################
-        65 :   1,845  #########
-        66 :     957  #####
-        67 :     318  ##
-        68 :      43  #
-        69 :       1  #
+**SimulatedAnnealingWrapper** — Like hill climbing, but accepts some worse swaps via the Metropolis rule while temperature cools, tracking a global best layout separately from the current state.
 
-RoundRobin (n=100,000)
-        24 :       1  #
-        30 :       4  #
-        31 :       4  #
-        32 :      15  #
-        33 :      25  #
-        34 :      36  #
-        35 :      51  #
-        36 :      92  #
-        37 :     152  #
-        38 :     214  #
-        39 :     320  ##
-        40 :     459  ###
-        41 :     633  ####
-        42 :     969  ######
-        43 :   1,203  ########
-        44 :   1,683  ###########
-        45 :   1,983  #############
-        46 :   2,439  ################
-        47 :   2,827  ###################
-        48 :   3,317  ######################
-        49 :   3,775  #########################
-        50 :   4,295  #############################
-        51 :   4,583  ###############################
-        52 :   4,891  #################################
-        53 :   5,133  ##################################
-        54 :   5,538  #####################################
-        55 :   5,953  ########################################
-        56 :   5,791  #######################################
-        57 :   5,935  ########################################
-        58 :   5,968  ########################################
-        59 :   5,839  #######################################
-        60 :   5,744  ######################################
-        61 :   5,563  #####################################
-        62 :   4,722  ################################
-        63 :   4,132  ############################
-        64 :   2,907  ###################
-        65 :   1,602  ###########
-        66 :     897  ######
-        67 :     281  ##
-        68 :      24  #
+### Planned
 
-Process finished with exit code 0.
+**SlidingWindow** — Planned; not implemented yet.
 
+## User interface
 
+The desktop app is a linear wizard. Screenshots will go under `docs/images/`—placeholders below.
 
-### 50 students, 500.000 generations
+### 1. Student Data
+
+Enter or edit students (number, name, positive/negative wishes, previous group members). Download a CSV template or import a CSV (import replaces the current list).
+
+![Student Data screen](docs/images/student-data.png)
+
+<!-- TODO: screenshot -->
+
+### 2. Group Sizing
+
+Choose a size blueprint: priority-based calculation or a manual list of group sizes. The sizes must sum to the student count.
+
+![Group Sizing screen](docs/images/group-sizing.png)
+
+<!-- TODO: screenshot -->
+
+### 3. Scorer Setup
+
+Enable scoring rules and set weights (mutual, partial, negative matches).
+
+![Scorer Setup screen](docs/images/scorer-setup.png)
+
+<!-- TODO: screenshot -->
+
+### 4. Invalidation Setup
+
+Optionally enable hard rejects (e.g. max students from a previous group).
+
+![Invalidation Setup screen](docs/images/invalidation-setup.png)
+
+<!-- TODO: screenshot -->
+
+### 5. Group Composition Generation
+
+Start/Stop the Monte Carlo search. The view shows the Top 5 compositions with scores, generation counters (generated, duplicates rejected), recent acceptance timestamps, and a **Polish** / **Stop polishing** control for hill-climbing the current top list.
+
+![Generation screen](docs/images/generation.png)
+
+<!-- TODO: screenshot -->
+
+![Generation in progress](docs/images/generation-running.png)
+
+<!-- TODO: screenshot -->
+
+![Polish in progress](docs/images/polish-running.png)
+
+<!-- TODO: screenshot -->
+
+## Architecture
+
+Groopr follows an **imperative shell, functional core** split.
+
+```mermaid
+flowchart TB
+  subgraph shell [Imperative_shell_AvaloniaUI]
+    VM[ViewModels_wizard_state]
+    IO[File_dialogs_timers_TaskRun]
+  end
+  subgraph core [Functional_core_Logic]
+    Gen[Producers]
+    Inv[Invalidators]
+    Sc[Scorers]
+    Keep2[TopCompositionKeeper]
+    Models[Immutable_models]
+  end
+  VM --> Gen
+  VM --> Inv
+  VM --> Sc
+  VM --> Keep2
+  IO --> VM
+```
+
+**Functional core (`Logic`)** — Domain models, group sizing, CSV parsing, generation strategies, scorers, invalidators, and the top-list keeper. Prefer pure, testable code with no UI dependencies. Compositions and groups are record-style models; producers yield unscored partitions; scorers and invalidators are pluggable.
+
+**Imperative shell (`AvaloniaUI`)** — Wizard navigation, mutable input configuration, file dialogs, background loops with cancellation, and UI refresh. ViewModels map configuration into Logic types and run the generate → reject → score → keep loop.
+
+### Projects
+
+| Project | Role |
+| --- | --- |
+| `Logic/` | Domain and algorithms |
+| `AvaloniaUI/` | Desktop shell (Avalonia + MVVM) |
+| `UnitTests/` | xUnit tests focused on Logic |
+| `GroupGenerationBenchmark/` | Console benchmark for strategy speed and score quality |
+| `TestData/` | Sample student fixtures |
+
+### Development approach
+
+Logic is developed with a dual-agent TDD workflow: one agent writes unit tests from the requirements; a second implements the code **without reading the tests**. The goal is that tests and implementation are independent interpretations of the same spec. If both agree, confidence is high; if they disagree, something was misunderstood. Tests are not skipped or disabled.
+
+## Tech stack
+
+- .NET 10
+- Avalonia UI (desktop)
+- CsvHelper (student import)
+- xUnit
+- Blazor WASM planned for a future web UI
+
+## Getting started
+
+```bash
+dotnet build Groopr.sln
+dotnet run --project AvaloniaUI
+dotnet test UnitTests
+dotnet run --project GroupGenerationBenchmark
+```
+
+CSV import expects columns: `StudentNumber`, `Name`, `PositiveWishes`, `PreviousGroupMembers`, `NegativeWishes` (wish/member lists are comma-separated student numbers). The app can download a template with example rows.
+
+## Benchmarks
+
+Condensed results from `GroupGenerationBenchmark` (full histograms omitted). Regenerate with:
+
+```bash
+dotnet run --project GroupGenerationBenchmark
+```
+
+### 30 students, 100,000 generations
+
+Fixture based on TestData (30 students). Blueprint `[4, 4, 4, 4, 4, 4, 3, 3]`. Scorers: MutualMatch=3, PartialMatch=1, NegativeMatch=3.
+
+**Generation speed**
+
+| Strategy | Elapsed | Rate (comp/s) |
+| --- | --- | --- |
+| RandomShuffle | 284.5ms | 351,511 |
+| BreadthFirstGreedy | 726.0ms | 137,744 |
+| DepthFirstGreedy | 507.7ms | 196,951 |
+| MutualPairFirst | 1.091s | 91,686 |
+| OrphanFirst | 714.3ms | 139,997 |
+| TriadFirst | 1.869s | 53,513 |
+| IslandFirst | 1.619s | 61,779 |
+| MatrixWindowScan | 88.199s | 1,134 |
+| EdgeContraction | 199.341s | 502 |
+| HillClimbing | 25.045s | 3,993 |
+| SimulatedAnnealing | 578.218s | 173 |
+| RoundRobin | 1.198s | 83,486 |
+
+**Score quality**
+
+| Strategy | Max | Mean | Median | StdDev | Min |
+| --- | --- | --- | --- | --- | --- |
+| RandomShuffle | 16 | 4.16 | 4 | 2.98 | -7 |
+| BreadthFirstGreedy | 29 | 16.91 | 17 | 3.62 | 0 |
+| DepthFirstGreedy | 28 | 15.45 | 16 | 3.51 | -1 |
+| MutualPairFirst | 28 | 19.86 | 20 | 2.62 | 8 |
+| OrphanFirst | 25 | 18.41 | 19 | 2.59 | 6 |
+| TriadFirst | 25 | 17.03 | 17 | 3.34 | 6 |
+| IslandFirst | 29 | 16.92 | 17 | 3.64 | 1 |
+| MatrixWindowScan | 29 | 25.66 | 26 | 1.35 | 19 |
+| EdgeContraction | 29 | 26.12 | 26 | 1.27 | 20 |
+| HillClimbing | 29 | 22.81 | 23 | 1.99 | 14 |
+| SimulatedAnnealing | 28 | 21.24 | 21 | 1.86 | 14 |
+| RoundRobin | 28 | 18.43 | 19 | 3.09 | 5 |
+
+### 50 students, 100,000 generations
+
+Fixture: Students50. Blueprint `[4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3]`. Same scorer weights.
+
+**Generation speed**
+
+| Strategy | Elapsed | Rate (comp/s) |
+| --- | --- | --- |
+| RandomShuffle | 406.3ms | 246,142 |
+| BreadthFirstGreedy | 1.125s | 88,857 |
+| DepthFirstGreedy | 796.5ms | 125,543 |
+| MutualPairFirst | 1.582s | 63,203 |
+| OrphanFirst | 1.395s | 71,683 |
+| TriadFirst | 3.043s | 32,859 |
+| IslandFirst | 2.655s | 37,670 |
+| MatrixWindowScan | 273.177s | 366 |
+| EdgeContraction | 628.281s | 159 |
+| HillClimbing | 32.890s | 3,040 |
+| SimulatedAnnealing | 1136.364s | 88 |
+| RoundRobin | 1.868s | 53,530 |
+
+**Score quality**
+
+| Strategy | Max | Mean | Median | StdDev | Min |
+| --- | --- | --- | --- | --- | --- |
+| RandomShuffle | 24 | 3.07 | 3 | 4.51 | -24 |
+| BreadthFirstGreedy | 68 | 50.32 | 51 | 5.74 | 22 |
+| DepthFirstGreedy | 67 | 44.49 | 45 | 6.21 | 16 |
+| MutualPairFirst | 69 | 56.78 | 57 | 4.97 | 30 |
+| OrphanFirst | 65 | 49.52 | 50 | 4.9 | 24 |
+| TriadFirst | 68 | 58.16 | 59 | 4.56 | 33 |
+| IslandFirst | 68 | 50.38 | 51 | 5.72 | 21 |
+| MatrixWindowScan | 68 | 62.87 | 63 | 2.75 | 45 |
+| EdgeContraction | 69 | 66.65 | 67 | 1.72 | 58 |
+| HillClimbing | 68 | 59.22 | 60 | 3.68 | 37 |
+| SimulatedAnnealing | 69 | 57.06 | 58 | 4.72 | 34 |
+| RoundRobin | 68 | 54.85 | 55 | 6.12 | 24 |
+
+## Roadmap
+
+- More student criteria (DISC profile, physical location)
+- SlidingWindow generation strategy
+- Additional scorers and invalidators
+- Blazor WASM web UI
