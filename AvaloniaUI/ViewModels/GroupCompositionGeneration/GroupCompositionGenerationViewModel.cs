@@ -30,7 +30,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     private readonly Action _navigateBack;
     private readonly GroupCompositionScorer _scorer;
     private readonly GroupCompositionInvalidator _invalidator;
-    private readonly RandomShuffleStrategy _producer;
+    private readonly IGroupCompositionProducer _producer;
     private readonly HillClimbingWrapper _climber;
     private readonly TopCompositionKeeper _keeper = new();
     private readonly DispatcherTimer _uiRefreshTimer;
@@ -111,7 +111,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
         _scorer = ScorerConfigurationMapper.ToScorer(inputConfiguration.EnabledScorers);
         _invalidator = InvalidatorConfigurationMapper.ToInvalidator(inputConfiguration.EnabledInvalidators);
-        _producer = new RandomShuffleStrategy(studentList, groupSizeDistribution);
+        _producer = new RoundRobinStrategy(studentList, groupSizeDistribution, _scorer);
         _climber = new HillClimbingWrapper(_scorer, iterations: PolishIterations);
 
         _uiRefreshTimer = new DispatcherTimer

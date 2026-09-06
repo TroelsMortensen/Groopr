@@ -1,3 +1,4 @@
+using Logic.Grouping.Scoring;
 using Logic.Models;
 
 namespace Logic.Grouping.Generation;
@@ -10,12 +11,14 @@ public class RoundRobinStrategy : IGroupCompositionProducer
     public RoundRobinStrategy(
         StudentList studentList,
         GroupSizeDistribution groupSizes,
+        GroupCompositionScorer scorer,
         int phaseLength = 1000)
         : this(
             [
                 new MutualPairFirstStrategy(studentList, groupSizes),
                 new OrphanFirstStrategy(studentList, groupSizes),
                 new TriadFirstStrategy(studentList, groupSizes),
+                new MatrixWindowScanStrategy(studentList, groupSizes, scorer),
             ],
             phaseLength)
     {

@@ -13,10 +13,10 @@ const int WarmupGenerations = 1_000;
 // Compact P10/P50/P90 + sparkline summary (in addition to full histograms). Set false to hide.
 const bool ShowCompactDistributionSummary = false;
 
-var students = BenchmarkStudentData.CreateStudents30();
-var fixtureName = "Students30";
-// var students = BenchmarkStudentData.CreateStudents50();
-// var fixtureName = "Students50";
+// var students = BenchmarkStudentData.CreateStudents30();
+// var fixtureName = "Students30";
+var students = BenchmarkStudentData.CreateStudents50();
+var fixtureName = "Students50";
 
 var sizes = GroupSizesCalculator.DetermineGroupSizes(
     students.Students.Count,
@@ -41,17 +41,18 @@ var strategies = new List<(string Name, IGroupCompositionProducer Producer)>
     ("MatrixWindowScan", new MatrixWindowScanStrategy(students, sizes, scorer)),
     ("EdgeContraction", new EdgeContractionMatchingStrategy(students, sizes, scorer)),
     ("HillClimbing", new HillClimbingWrapper(students, sizes, scorer)),
-    ("SimulatedAnnealing", new SimulatedAnnealingWrapper(
-        students,
-        sizes,
-        scorer,
-        // Full default schedule is too heavy for 100k generations; keep SA comparable to hill-climbing cost.
-        new SimulatedAnnealingConfig(
-            initialTemperature: 50,
-            coolingRate: 0.9,
-            minTemperature: 0.5,
-            stepsPerTemp: Math.Max(1, students.Students.Count)))),
-    ("RoundRobin", new RoundRobinStrategy(students, sizes)),
+    // this one is simply too slow
+    // ("SimulatedAnnealing", new SimulatedAnnealingWrapper(
+    //     students,
+    //     sizes,
+    //     scorer,
+    //     // Full default schedule is too heavy for 100k generations; keep SA comparable to hill-climbing cost.
+    //     new SimulatedAnnealingConfig(
+    //         initialTemperature: 50,
+    //         coolingRate: 0.9,
+    //         minTemperature: 0.5,
+    //         stepsPerTemp: Math.Max(1, students.Students.Count)))),
+    ("RoundRobin", new RoundRobinStrategy(students, sizes, scorer)),
 };
 
 PrintHeader(fixtureName, students, sizes, Generations);

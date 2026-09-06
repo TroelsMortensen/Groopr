@@ -50,7 +50,7 @@ public class HillClimbingWrapper : IGroupCompositionProducer
         StudentList studentList,
         GroupSizeDistribution groupSizes,
         GroupCompositionScorer scorer,
-        int iterations = 75)
+        int iterations = 50)
         : this(new MutualPairFirstStrategy(studentList, groupSizes), scorer, iterations)
     {
     }
@@ -58,7 +58,7 @@ public class HillClimbingWrapper : IGroupCompositionProducer
     public HillClimbingWrapper(
         IGroupCompositionProducer inner,
         GroupCompositionScorer scorer,
-        int iterations = 75)
+        int iterations = 50)
     {
         ArgumentNullException.ThrowIfNull(inner);
         ArgumentNullException.ThrowIfNull(scorer);

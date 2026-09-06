@@ -528,7 +528,15 @@ public sealed class RoundRobinStrategyContractTests : GroupCompositionProducerCo
     protected override IGroupCompositionProducer CreateProducer(
         StudentList students,
         GroupSizeDistribution groupSizes)
-        => new RoundRobinStrategy(students, groupSizes);
+        => new RoundRobinStrategy(
+            students,
+            groupSizes,
+            new GroupCompositionScorer(
+            [
+                new MutualMatch(3),
+                new PartialMatch(1),
+                new NegativeMatch(3),
+            ]));
 }
 
 public sealed class TriadFirstStrategyContractTests : GroupCompositionProducerContractTests

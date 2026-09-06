@@ -1,4 +1,6 @@
 using Logic.Grouping.Generation;
+using Logic.Grouping.Scoring;
+using Logic.Grouping.Scoring.ScoringStrategies;
 using Logic.Models;
 
 namespace UnitTests.GenerationTests;
@@ -133,6 +135,12 @@ public class RoundRobinStrategyTests
         var strategy = new RoundRobinStrategy(
             StudentList.Create(students),
             GroupSizeDistribution.Create([3, 3], 6),
+            new GroupCompositionScorer(
+            [
+                new MutualMatch(3),
+                new PartialMatch(1),
+                new NegativeMatch(3),
+            ]),
             phaseLength: 5);
 
         GroupComposition composition = strategy.GenerateStream().First();
