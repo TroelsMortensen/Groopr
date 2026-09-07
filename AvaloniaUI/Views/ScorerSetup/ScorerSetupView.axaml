@@ -51,10 +51,12 @@
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
             <Button Content="Back"
                     HorizontalAlignment="Left"
+                    Cursor="Hand"
                     Command="{Binding BackCommand}" />
             <Button Grid.Column="1"
                     Content="Next"
                     HorizontalAlignment="Right"
+                    Cursor="Hand"
                     Command="{Binding NextCommand}" />
         </Grid>
 

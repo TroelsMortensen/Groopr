@@ -29,10 +29,12 @@
             <Button Content="Cancel"
                     IsCancel="True"
                     MinWidth="80"
+                    Cursor="Hand"
                     Click="OnCancelClick" />
             <Button Content="OK"
                     IsDefault="True"
                     MinWidth="80"
+                    Cursor="Hand"
                     Click="OnOkClick" />
         </StackPanel>
     </Grid>

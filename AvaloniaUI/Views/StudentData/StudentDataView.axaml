@@ -19,6 +19,7 @@
                 Grid.Column="1"
                 Content="Next"
                 HorizontalAlignment="Right"
+                Cursor="Hand"
                 Command="{Binding NextCommand}" />
 
         <Border Grid.Row="1"

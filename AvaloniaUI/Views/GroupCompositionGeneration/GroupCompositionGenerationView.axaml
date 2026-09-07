@@ -56,14 +56,17 @@
         <Grid Grid.Row="0" ColumnDefinitions="Auto,*">
             <Button Content="Back"
                     HorizontalAlignment="Left"
+                    Cursor="Hand"
                     Command="{Binding BackCommand}" />
             <StackPanel Grid.Column="1"
                         Orientation="Horizontal"
                         HorizontalAlignment="Right"
                         Spacing="8">
                 <Button Content="{Binding PolishButtonText}"
+                        Cursor="Hand"
                         Command="{Binding TogglePolishCommand}" />
                 <Button Content="{Binding GenerationButtonText}"
+                        Cursor="Hand"
                         Command="{Binding ToggleGenerationCommand}" />
             </StackPanel>
         </Grid>
