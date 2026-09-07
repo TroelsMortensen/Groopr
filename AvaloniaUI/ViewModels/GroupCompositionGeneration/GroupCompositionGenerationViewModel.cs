@@ -172,14 +172,15 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     }
 
     [RelayCommand]
-    private Task CopyCompositionAsync(GroupCompositionCardViewModel? composition)
+    private async Task CopyCompositionAsync(GroupCompositionCardViewModel? composition)
     {
         if (composition is null)
         {
-            return Task.CompletedTask;
+            return;
         }
 
-        return _clipboardService.SetTextAsync(composition.PlainText);
+        await _clipboardService.SetTextAsync(composition.PlainText);
+        _ = composition.ShowCopiedFeedbackAsync();
     }
 
     [RelayCommand]
