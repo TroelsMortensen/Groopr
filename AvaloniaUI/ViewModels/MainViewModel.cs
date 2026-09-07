@@ -8,6 +8,7 @@ public partial class MainViewModel : ViewModelBase
 {
     private readonly InputConfiguration _inputConfiguration = new();
     private readonly DialogService _dialogService = new();
+    private readonly ClipboardService _clipboardService = new();
 
     [ObservableProperty]
     public partial ViewModelBase? CurrentViewModel { get; set; }
@@ -58,6 +59,7 @@ public partial class MainViewModel : ViewModelBase
         CurrentViewModel = new GroupCompositionGeneration.GroupCompositionGenerationViewModel(
             _inputConfiguration,
             _dialogService,
+            _clipboardService,
             NavigateToInvalidationSetup);
     }
 }

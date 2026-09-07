@@ -27,6 +27,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
 
     private readonly InputConfiguration _inputConfiguration;
     private readonly IDialogService _dialogService;
+    private readonly IClipboardService _clipboardService;
     private readonly Action _navigateBack;
     private readonly GroupCompositionScorer _scorer;
     private readonly GroupCompositionInvalidator _invalidator;
@@ -87,6 +88,7 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
             EnabledInvalidators = []
         },
         new NullDialogService(),
+        new NullClipboardService(),
         static () => { })
     {
     }
@@ -94,10 +96,12 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
     public GroupCompositionGenerationViewModel(
         InputConfiguration inputConfiguration,
         IDialogService dialogService,
+        IClipboardService clipboardService,
         Action navigateBack)
     {
         _inputConfiguration = inputConfiguration;
         _dialogService = dialogService;
+        _clipboardService = clipboardService;
         _navigateBack = navigateBack;
 
         var studentList = inputConfiguration.StudentList
@@ -165,6 +169,17 @@ public partial class GroupCompositionGenerationViewModel : ViewModelBase
         }
 
         StartPolishing();
+    }
+
+    [RelayCommand]
+    private Task CopyCompositionAsync(GroupCompositionCardViewModel? composition)
+    {
+        if (composition is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        return _clipboardService.SetTextAsync(composition.PlainText);
     }
 
     [RelayCommand]

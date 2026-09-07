@@ -5,7 +5,8 @@
              xmlns:generation="clr-namespace:AvaloniaUI.ViewModels.GroupCompositionGeneration"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="AvaloniaUI.Views.GroupCompositionGeneration.GroupCompositionGenerationView"
-             x:DataType="generation:GroupCompositionGenerationViewModel">
+             x:DataType="generation:GroupCompositionGenerationViewModel"
+             x:Name="Root">
 
     <Design.DataContext>
         <generation:GroupCompositionGenerationViewModel />
@@ -23,6 +24,30 @@
             <Setter Property="CornerRadius" Value="24" />
             <Setter Property="Padding" Value="8,4" />
             <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.copyPill">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="Padding" Value="8,4" />
+            <Setter Property="MinHeight" Value="0" />
+            <Setter Property="MinWidth" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.copyPill /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumLowBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="24" />
+            <Setter Property="Padding" Value="8,4" />
+        </Style>
+        <Style Selector="Button.copyPill:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
+        </Style>
+        <Style Selector="Button.copyPill:pressed /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SystemControlBackgroundAltHighBrush}" />
         </Style>
     </UserControl.Styles>
 
@@ -74,12 +99,31 @@
                                 BorderThickness="1"
                                 Padding="16,20,16,16">
                             <StackPanel Spacing="12">
-                                <Border Classes="titlePill"
-                                        Margin="0,-28,0,0">
-                                    <TextBlock FontSize="14"
-                                               FontWeight="SemiBold"
-                                               Text="{Binding ScoreText, StringFormat=Score: {0}}" />
-                                </Border>
+                                <StackPanel Orientation="Horizontal"
+                                            Spacing="8"
+                                            Margin="0,-28,0,0"
+                                            HorizontalAlignment="Left">
+                                    <Border Classes="titlePill"
+                                            VerticalAlignment="Center">
+                                        <TextBlock FontSize="14"
+                                                   FontWeight="SemiBold"
+                                                   Text="{Binding ScoreText, StringFormat=Score: {0}}" />
+                                    </Border>
+                                    <Button Classes="copyPill"
+                                            Command="{Binding #Root.((generation:GroupCompositionGenerationViewModel)DataContext).CopyCompositionCommand}"
+                                            CommandParameter="{Binding}">
+                                        <StackPanel Orientation="Horizontal" Spacing="4">
+                                            <TextBlock Text="Copy"
+                                                       FontSize="14"
+                                                       FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" />
+                                            <PathIcon Width="14"
+                                                      Height="14"
+                                                      VerticalAlignment="Center"
+                                                      Data="M16,1H4C2.9,1 2,1.9 2,3V17H4V3H16V1M19,5H8C6.9,5 6,5.9 6,7V21C6,22.1 6.9,23 8,23H19C20.1,23 21,22.1 21,21V7C21,5.9 20.1,5 19,5M19,21H8V7H19V21Z" />
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
 
                                 <SelectableTextBlock Text="{Binding PlainText}"
                                                      FontSize="14"
