@@ -1,0 +1,24 @@
+<div class="panel">
+    <h2 class="panel-title">Add Student</h2>
+    <div class="field">
+        <label>Student Number</label>
+        <input class="form-input" value="@Number" @oninput="e => NumberChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)" />
+    </div>
+    <div class="field">
+        <label>Name (optional)</label>
+        <input class="form-input" value="@Name" @oninput="e => NameChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)" />
+    </div>
+    <div class="field">
+        <label>Positive Wishes (comma-separated)</label>
+        <input class="form-input" placeholder="e.g. 2, 5, 12" value="@PositiveWishes" @oninput="e => PositiveWishesChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)" />
+    </div>
+    <div class="field">
+        <label>Previous Group Members (comma-separated, optional)</label>
+        <input class="form-input" placeholder="e.g. 2, 5, 12" value="@PreviousGroupMembers" @oninput="e => PreviousGroupMembersChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)" />
+    </div>
+    <div class="field">
+        <label>Negative Wishes (comma-separated, optional)</label>
+        <input class="form-input" placeholder="e.g. 2, 5, 12" value="@NegativeWishes" @oninput="e => NegativeWishesChanged.InvokeAsync(e.Value?.ToString() ?? string.Empty)" />
+    </div>
+    <button type="button" class="btn" @onclick="OnAdd">Add Student</button>
+</div>

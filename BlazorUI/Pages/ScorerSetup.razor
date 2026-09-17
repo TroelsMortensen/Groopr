@@ -1,0 +1,23 @@
+@page "/scorer-setup"
+
+<div class="page-frame">
+    <div class="page-toolbar">
+        <button type="button" class="btn" @onclick="Back">Back</button>
+        <button type="button" class="btn btn-primary" @onclick="Next">Next</button>
+    </div>
+
+    <div class="page-body">
+        <h2 class="section-heading">Scoring rules</h2>
+        <div class="rule-grid">
+            @foreach (var card in ScorerCards)
+            {
+                <ScorerRuleCard Card="card" OnChanged="StateHasChanged" />
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(StatusMessage))
+    {
+        <div class="page-status">@StatusMessage</div>
+    }
+</div>

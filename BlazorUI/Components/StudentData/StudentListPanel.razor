@@ -1,0 +1,15 @@
+<div class="panel student-list-panel">
+    <h2 class="panel-title">Students</h2>
+    <ul class="student-list">
+        @foreach (var student in Students)
+        {
+            var isSelected = SelectedStudent == student;
+            <li class="student-row @(isSelected ? "selected" : null)">
+                <button type="button" class="student-select" @onclick="() => OnSelect.InvokeAsync(student)">
+                    @student.DisplayLabel
+                </button>
+                <button type="button" class="btn btn-danger" @onclick="() => OnDelete.InvokeAsync(student)">Delete</button>
+            </li>
+        }
+    </ul>
+</div>

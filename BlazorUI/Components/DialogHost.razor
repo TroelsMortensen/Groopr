@@ -1,0 +1,19 @@
+@if (Dialogs.IsVisible)
+{
+    <div class="dialog-backdrop" @onclick="OnBackdropClick">
+        <div class="dialog-panel" @onclick:stopPropagation="true">
+            <p class="dialog-message">@Dialogs.Message</p>
+            <div class="dialog-actions">
+                @if (Dialogs.IsConfirm)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="() => Dialogs.CloseConfirm(false)">Cancel</button>
+                    <button type="button" class="btn btn-primary" @onclick="() => Dialogs.CloseConfirm(true)">OK</button>
+                }
+                else
+                {
+                    <button type="button" class="btn btn-primary" @onclick="Dialogs.CloseError">Okay</button>
+                }
+            </div>
+        </div>
+    </div>
+}

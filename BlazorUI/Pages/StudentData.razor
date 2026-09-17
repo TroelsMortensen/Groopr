@@ -1,0 +1,61 @@
+@page "/students"
+
+<div class="page-frame student-data-page">
+    <div class="page-toolbar">
+        <div></div>
+        <button type="button" class="btn btn-primary" @onclick="Next">Next</button>
+    </div>
+
+    <div class="page-body student-data-layout">
+        <StudentListPanel Students="Students"
+                          SelectedStudent="SelectedStudent"
+                          OnSelect="SelectStudent"
+                          OnDelete="DeleteStudent" />
+
+        <div class="student-data-forms">
+            @if (SelectedStudent is not null)
+            {
+                <StudentEditForm Number="@EditNumber"
+                                 NumberChanged="v => EditNumber = v"
+                                 Name="@EditName"
+                                 NameChanged="v => EditName = v"
+                                 PositiveWishes="@EditPositiveWishes"
+                                 PositiveWishesChanged="v => EditPositiveWishes = v"
+                                 PreviousGroupMembers="@EditPreviousGroupMembers"
+                                 PreviousGroupMembersChanged="v => EditPreviousGroupMembers = v"
+                                 NegativeWishes="@EditNegativeWishes"
+                                 NegativeWishesChanged="v => EditNegativeWishes = v"
+                                 OnSave="SaveChanges" />
+            }
+
+            <StudentAddForm Number="@FormNumber"
+                            NumberChanged="v => FormNumber = v"
+                            Name="@FormName"
+                            NameChanged="v => FormName = v"
+                            PositiveWishes="@FormPositiveWishes"
+                            PositiveWishesChanged="v => FormPositiveWishes = v"
+                            PreviousGroupMembers="@FormPreviousGroupMembers"
+                            PreviousGroupMembersChanged="v => FormPreviousGroupMembers = v"
+                            NegativeWishes="@FormNegativeWishes"
+                            NegativeWishesChanged="v => FormNegativeWishes = v"
+                            OnAdd="AddStudent" />
+
+            <div class="panel">
+                <h2 class="panel-title">Bulk Import</h2>
+                <p class="field-hint">Download a template, fill it in Excel, then upload to replace the student list.</p>
+                <div class="bulk-actions">
+                    <button type="button" class="btn" @onclick="DownloadTemplateAsync">Download CSV Template</button>
+                    <label class="btn upload-label">
+                        Upload CSV...
+                        <InputFile OnChange="ImportCsvAsync" accept=".csv,text/csv" class="upload-input" />
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(StatusMessage))
+    {
+        <div class="page-status">@StatusMessage</div>
+    }
+</div>

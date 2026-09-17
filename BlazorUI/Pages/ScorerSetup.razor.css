@@ -1,0 +1,18 @@
+.section-heading {
+    margin: 0 0 1rem;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+.rule-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem 1rem;
+    padding-top: 0.75rem;
+}
+
+@media (max-width: 800px) {
+    .rule-grid {
+        grid-template-columns: 1fr;
+    }
+}

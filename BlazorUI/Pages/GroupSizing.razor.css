@@ -1,0 +1,42 @@
+.section-heading {
+    margin: 0 0 1rem;
+    font-size: 1.05rem;
+    font-weight: 650;
+}
+
+.group-sizing-modes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.mode-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.mode-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    font-size: 1.1rem;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.priority-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.priority-row .form-input {
+    flex: 1;
+}
+
+@media (max-width: 800px) {
+    .group-sizing-modes {
+        grid-template-columns: 1fr;
+    }
+}

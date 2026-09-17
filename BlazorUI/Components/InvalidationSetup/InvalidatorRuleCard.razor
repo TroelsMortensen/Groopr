@@ -1,0 +1,14 @@
+<div class="rule-card">
+    <label class="title-pill rule-card-title">
+        <input type="checkbox" checked="@Card.IsRuleEnabled" @onchange="OnEnabledChanged" />
+        @Card.Title
+    </label>
+    <div class="rule-card-body @(Card.IsInactive ? "inactive" : null)">
+        <p class="rule-description">@Card.Description</p>
+        <div class="field">
+            <label>Maximum allowed</label>
+            <input class="form-input" placeholder="e.g. 2" value="@Card.MaxCountText" @oninput="OnMaxCountChanged" disabled="@Card.IsInactive" />
+            <span class="field-hint">Must be an integer of 1 or more.</span>
+        </div>
+    </div>
+</div>

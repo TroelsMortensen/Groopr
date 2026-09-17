@@ -1,0 +1,14 @@
+<div class="rule-card">
+    <label class="title-pill rule-card-title">
+        <input type="checkbox" checked="@Card.IsRuleEnabled" @onchange="OnEnabledChanged" />
+        @Card.Title
+    </label>
+    <div class="rule-card-body @(Card.IsInactive ? "inactive" : null)">
+        <p class="rule-description">@Card.Description</p>
+        <div class="field">
+            <label>Weight</label>
+            <input class="form-input" placeholder="e.g. 10.0" value="@Card.WeightText" @oninput="OnWeightChanged" disabled="@Card.IsInactive" />
+            <span class="field-hint">Must be a decimal value greater than 0.</span>
+        </div>
+    </div>
+</div>

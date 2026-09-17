@@ -1,0 +1,36 @@
+@page "/generation"
+
+<div class="page-frame generation-page">
+    <div class="page-toolbar">
+        <button type="button" class="btn" @onclick="BackAsync">Back</button>
+        <div class="page-toolbar-end">
+            <button type="button" class="btn" disabled="@(!CanTogglePolish)" @onclick="TogglePolishAsync">@PolishButtonText</button>
+            <button type="button" class="btn btn-primary" disabled="@(!CanToggleGeneration)" @onclick="ToggleGenerationAsync">@GenerationButtonText</button>
+        </div>
+    </div>
+
+    <div class="generation-stats">
+        <div>Generated: @GeneratedCount.ToString("N0")</div>
+        <div>Polished: @PolishedCount.ToString("N0")</div>
+        <div>Duplicates rejected: @DuplicateRejectedCount.ToString("N0")</div>
+        @if (HasRecentInsertions)
+        {
+            <div class="recent-insertions">
+                <div>Recent top-5 insertions:</div>
+                <ul>
+                    @foreach (var text in RecentTopCompositionInsertedTexts)
+                    {
+                        <li>@text</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+
+    <div class="page-body generation-results">
+        @foreach (var composition in TopCompositions)
+        {
+            <CompositionCard Composition="composition" OnCopy="CopyCompositionAsync" />
+        }
+    </div>
+</div>

@@ -1,0 +1,56 @@
+@page "/group-sizing"
+
+<div class="page-frame">
+    <div class="page-toolbar">
+        <button type="button" class="btn" @onclick="Back">Back</button>
+        <button type="button" class="btn btn-primary" @onclick="Next">Next</button>
+    </div>
+
+    <div class="page-body">
+        <h2 class="section-heading">@StudentCount students</h2>
+
+        <div class="group-sizing-modes">
+            <div class="mode-column">
+                <label class="mode-header">
+                    <input type="radio" name="GroupSizingMode" checked="@IsPriorityMode" @onchange="() => SetPriorityMode(true)" />
+                    Use group size priorities
+                </label>
+                <div class="panel mode-card @(IsManualMode ? "inactive" : null)">
+                    <div class="field">
+                        <label>Group size priorities (comma-separated)</label>
+                        <div class="priority-row">
+                            <input class="form-input" placeholder="e.g. 4, 3, 5" value="@PriorityInput" @oninput="e => PriorityInput = e.Value?.ToString() ?? string.Empty" disabled="@IsManualMode" />
+                            <button type="button" class="btn" @onclick="Calculate" disabled="@IsManualMode">Calculate</button>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(CalculatedResultText))
+                    {
+                        <div class="field">
+                            <label>Suggested distribution</label>
+                            <strong>@CalculatedResultText</strong>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="mode-column">
+                <label class="mode-header">
+                    <input type="radio" name="GroupSizingMode" checked="@IsManualMode" @onchange="() => SetPriorityMode(false)" />
+                    Enter specific group sizes
+                </label>
+                <div class="panel mode-card @(IsPriorityMode ? "inactive" : null)">
+                    <div class="field">
+                        <label>Group sizes (comma-separated)</label>
+                        <input class="form-input" placeholder="e.g. 4, 4, 3, 3" value="@ManualSizesInput" @oninput="e => ManualSizesInput = e.Value?.ToString() ?? string.Empty" disabled="@IsPriorityMode" />
+                        <span class="field-hint">The sum must equal the number of students.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(StatusMessage))
+    {
+        <div class="page-status">@StatusMessage</div>
+    }
+</div>

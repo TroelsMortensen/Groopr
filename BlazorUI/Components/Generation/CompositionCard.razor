@@ -1,0 +1,13 @@
+<div class="rule-card composition-card">
+    <div class="composition-header">
+        <span class="title-pill">Score: @Composition.ScoreText</span>
+        <button type="button" class="btn btn-pill" @onclick="() => OnCopy.InvokeAsync(Composition)">
+            Copy
+        </button>
+        @if (Composition.ShowCopiedFeedback)
+        {
+            <span class="copied-feedback">Copied</span>
+        }
+    </div>
+    <pre class="composition-text">@Composition.PlainText</pre>
+</div>

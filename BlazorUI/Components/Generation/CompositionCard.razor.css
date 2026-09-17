@@ -1,0 +1,23 @@
+.composition-card {
+    padding-top: 1.35rem;
+}
+
+.composition-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: -1.9rem 0 0.75rem;
+}
+
+.copied-feedback {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.composition-text {
+    margin: 0;
+    white-space: pre-wrap;
+    font-family: inherit;
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
