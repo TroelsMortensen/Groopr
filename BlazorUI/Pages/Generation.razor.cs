@@ -16,8 +16,9 @@ namespace BlazorUI.Pages;
 public partial class Generation : IDisposable
 {
     // WASM is single-threaded: the browser only paints / handles clicks when we await.
-    // Yield often enough that counters and Stop stay responsive.
-    private const int YieldIntervalMs = 50;
+    // Yield often enough that counters and Stop stay responsive, but not so often that
+    // generation throughput collapses.
+    private const int YieldIntervalMs = 200;
     private const int PolishIterations = 15;
 
     [Inject] private InputConfiguration InputConfiguration { get; set; } = null!;
@@ -304,15 +305,11 @@ public partial class Generation : IDisposable
                         _keeper.TryReplace(composition, polished);
                     }
 
-                    // Polish is expensive; yield after each composition so Stop stays responsive.
-                    await YieldToUiAsync(cancellationToken);
-                    lastYieldMs = stopwatch.ElapsedMilliseconds;
-                }
-
-                if (stopwatch.ElapsedMilliseconds - lastYieldMs >= YieldIntervalMs)
-                {
-                    await YieldToUiAsync(cancellationToken);
-                    lastYieldMs = stopwatch.ElapsedMilliseconds;
+                    if (stopwatch.ElapsedMilliseconds - lastYieldMs >= YieldIntervalMs)
+                    {
+                        await YieldToUiAsync(cancellationToken);
+                        lastYieldMs = stopwatch.ElapsedMilliseconds;
+                    }
                 }
             }
         }
@@ -337,10 +334,13 @@ public partial class Generation : IDisposable
 
     private void FlushUi()
     {
+        // Counters always update so Start/Stop feedback stays live.
         GeneratedCount = _generatedCount;
         PolishedCount = _polishedCount;
         DuplicateRejectedCount = _duplicateRejectedCount;
 
+        // Rebuild cards / recent insertions only when the top list actually changed
+        // (TryAdd accepted or TryReplace improved a slot).
         if (_keeper.Revision == _lastRenderedRevision)
         {
             return;
