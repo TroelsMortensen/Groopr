@@ -64,7 +64,7 @@ public partial class Generation : IDisposable
             || InputConfiguration.GroupSizeDistribution is null
             || InputConfiguration.EnabledScorers.Count == 0)
         {
-            Navigation.NavigateTo("/students", replace: true);
+            Navigation.NavigateTo("students", replace: true);
             return;
         }
 
@@ -147,7 +147,7 @@ public partial class Generation : IDisposable
         }
 
         ClearGenerationState();
-        Navigation.NavigateTo("/invalidation-setup");
+        Navigation.NavigateTo("invalidation-setup");
     }
 
     private async Task StartGenerationAsync()

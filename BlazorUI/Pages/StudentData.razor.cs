@@ -159,7 +159,7 @@ public partial class StudentData
         {
             var studentList = StudentList.Create(Students.Select(s => s.ToStudent()).ToList());
             InputConfiguration.StudentList = studentList;
-            Navigation.NavigateTo("/group-sizing");
+            Navigation.NavigateTo("group-sizing");
         }
         catch (Exception ex)
         {

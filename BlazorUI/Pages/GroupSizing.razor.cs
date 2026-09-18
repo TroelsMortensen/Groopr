@@ -24,7 +24,7 @@ public partial class GroupSizing
     {
         if (InputConfiguration.StudentList is null)
         {
-            Navigation.NavigateTo("/students", replace: true);
+            Navigation.NavigateTo("students", replace: true);
             return;
         }
 
@@ -62,7 +62,7 @@ public partial class GroupSizing
     private void Back()
     {
         ClearStatus();
-        Navigation.NavigateTo("/students");
+        Navigation.NavigateTo("students");
     }
 
     private void Next()
@@ -87,7 +87,7 @@ public partial class GroupSizing
                 : ParseCommaSeparatedInts(ManualSizesInput);
 
             InputConfiguration.GroupSizeDistribution = GroupSizeDistribution.Create(sizes, studentCount);
-            Navigation.NavigateTo("/scorer-setup");
+            Navigation.NavigateTo("scorer-setup");
         }
         catch (Exception ex)
         {

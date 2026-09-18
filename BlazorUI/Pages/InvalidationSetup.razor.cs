@@ -22,7 +22,7 @@ public partial class InvalidationSetup
             || InputConfiguration.GroupSizeDistribution is null
             || InputConfiguration.EnabledScorers.Count == 0)
         {
-            Navigation.NavigateTo("/students", replace: true);
+            Navigation.NavigateTo("students", replace: true);
             return;
         }
 
@@ -39,7 +39,7 @@ public partial class InvalidationSetup
     private void Back()
     {
         ClearStatus();
-        Navigation.NavigateTo("/scorer-setup");
+        Navigation.NavigateTo("scorer-setup");
     }
 
     private void Next()
@@ -62,7 +62,7 @@ public partial class InvalidationSetup
             }
 
             InputConfiguration.EnabledInvalidators = enabledInvalidators;
-            Navigation.NavigateTo("/generation");
+            Navigation.NavigateTo("generation");
         }
         catch (Exception ex)
         {

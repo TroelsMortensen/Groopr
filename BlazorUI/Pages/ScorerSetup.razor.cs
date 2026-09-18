@@ -20,7 +20,7 @@ public partial class ScorerSetup
     {
         if (InputConfiguration.StudentList is null || InputConfiguration.GroupSizeDistribution is null)
         {
-            Navigation.NavigateTo("/students", replace: true);
+            Navigation.NavigateTo("students", replace: true);
             return;
         }
 
@@ -49,7 +49,7 @@ public partial class ScorerSetup
     private void Back()
     {
         ClearStatus();
-        Navigation.NavigateTo("/group-sizing");
+        Navigation.NavigateTo("group-sizing");
     }
 
     private void Next()
@@ -78,7 +78,7 @@ public partial class ScorerSetup
             }
 
             InputConfiguration.EnabledScorers = enabledScorers;
-            Navigation.NavigateTo("/invalidation-setup");
+            Navigation.NavigateTo("invalidation-setup");
         }
         catch (Exception ex)
         {
