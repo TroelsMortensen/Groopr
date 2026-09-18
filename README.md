@@ -112,17 +112,44 @@ Both the Avalonia desktop app and the Blazor WASM web app use the same linear wi
 
 Enter or edit students (number, name, positive/negative wishes, previous group members). Download a CSV template or import a CSV (import replaces the current list).
 
-![Student Data screen](docs/images/student-data.png)
+![Student Data screen](docs/images/student-data-screen1.png)
 
-<!-- TODO: screenshot -->
+1. Here the list of students is shown.
+2. This box is for manually adding a single student.
+3. Insert the student id/number. This is required.
+4. Optionally input student name.
+5. Optionally input a comma-separated list of "positive wishes" (students that the student would like to work with). Each wish is a student number, example: "123456, 654871, 124578".
+6. Optionally input a comma-separated list of "previous group members" (students that the student was in a group with previously). Each member is a student number, example: "123456, 654871, 124578".
+7. Optionally input a comma-separated list of "negative wishes" (students that the student would not like to work with). Each wish is a student number, example: "123456, 654871, 124578".
+8. Click the "Add" button to add the student to the list.
+9. Click the "Download Template" button to download a CSV template with the above fields. This can be used to import the students into the app.
+10. Click the "Import" button to import the students from a CSV file. The file must have the same format as the template.
+11. Click the Next button to proceed to the next screen.
+
+
+![Student Data screen 2](docs/images/student-data-screen2.png)
+
+1. Here the list of students is shown, imported from a CSV file.
+2. You can click a student in the list to edit it. Click the student again to de-select.
+3. A student can be deleted by clicking the "Delete" button.
+4. When a student is selected, the edit student form is shown.
+
 
 ### 2. Group Sizing
 
 Choose a size blueprint: priority-based calculation or a manual list of group sizes. The sizes must sum to the student count.
 
+There are two options for group sizing: computed or manual.
+
 ![Group Sizing screen](docs/images/group-sizing.png)
 
-<!-- TODO: screenshot -->
+1. Press the back button to go back to the previous screen.
+2. Press the next button to proceed to the next screen.
+3. If you choose computed, the group sizes will be calculated based on the student count and the desired group size. 
+4. Input a priority-list of the sizes you want, example: "4, 5, 3". The calculator will attempt to find a valid partition of the students into the sizes, prioriting groups of size 4, then 5, then 3. 
+5. Press calculate to see the results.
+6. Alternatively, choose to manually input the group sizes.
+7. Input a number-sequence of the sizes you want, example: "4,4,4,4,4,5,5". The sizes must sum to the student count.
 
 ### 3. Scorer Setup
 
@@ -130,7 +157,12 @@ Enable scoring rules and set weights (mutual, partial, negative matches).
 
 ![Scorer Setup screen](docs/images/scorer-setup.png)
 
-<!-- TODO: screenshot -->
+1. Back button
+2. Next button
+3. Select which scorers you want to include. Each group is scored by all enabled scorers.
+4. This scorer awards points when two students listed each other positively and share a group. The weight is the number of points to award.
+5. This scorer awards points when a one-way positive wish is satisfied. The weight is the number of points to award.
+6. This scorer subtracts points when students with a negative wish share a group. The weight is the number of points to subtract.
 
 ### 4. Invalidation Setup
 
@@ -138,7 +170,9 @@ Optionally enable hard rejects (e.g. max students from a previous group).
 
 ![Invalidation Setup screen](docs/images/invalidation-setup.png)
 
-<!-- TODO: screenshot -->
+1. Pick which rules should reject a composition before scoring. Currently only one rule is available: "Max students from previous group".
+2. This rule rejects a composition if any single group contains more than the maximum number of students from a previous group. The rule is used to ensure that students are not grouped with too many classmates from a previous group, and thereby they get to work with a new set of classmates.
+3. The maximum number is the number of students in the previous group. If "2" is selected, any student is allowed to be in a group with a maximum of 2 students from a previous group.
 
 ### 5. Group Composition Generation
 
@@ -146,15 +180,14 @@ Start/Stop the Monte Carlo search. The view shows the Top 5 compositions with sc
 
 ![Generation screen](docs/images/generation.png)
 
-<!-- TODO: screenshot -->
-
-![Generation in progress](docs/images/generation-running.png)
-
-<!-- TODO: screenshot -->
-
-![Polish in progress](docs/images/polish-running.png)
-
-<!-- TODO: screenshot -->
+1. Press the start button to start the generation process, computed groups are shown in the list.
+2. This number shows how many compositions have been generated and evaluated.
+3. This number shows how many compositions have been attempted polished. See 8 below.
+4. This number shows how many duplicate group compositions have been generated. This is probably not very interesting to you, but I was curious to see if it was happening. It may disappear in the future.
+5. This number shows the timestamps for when each of the latest 5 compositions were accepted into the top 5 list. The point is to gauge if it makes sense to stop the generation process. If no new composition have been created in a while, it may make sense to stop the generation process.
+6. Here is a vertical list of the generated groups. Each group has a score.
+7. There is a button, which copies a single group composition to the clipboard.
+8. This button starts the polishing process. It is available after the generation has been stopped. It will look at the current top 5 list, and try to improve upon them.
 
 ## Architecture
 
