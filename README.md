@@ -1,8 +1,13 @@
 # Groopr
 
-Groopr is a desktop app that helps teachers divide students into groups.
+Groopr helps teachers divide students into groups. It ships as:
+
+- a **desktop app** (`AvaloniaUI`)
+- a **web app** (`BlazorUI`, Blazor WebAssembly), hosted here on [GitHub Pages](https://troelsmortensen.github.io/Groopr/)
 
 Students can supply optional preferences—who they want to work with, who they prefer not to, and who they were grouped with previously. Groopr generates many candidate **group compositions**, scores them against configurable rules, and keeps a rolling top list so the teacher can pick a strong partition.
+
+Both UIs share the same `Logic` core and the same linear wizard. Generation in the browser is substantially slower than on desktop (roughly **~10×** in practice) because Blazor WASM runs on a single thread and must periodically yield so the page stays responsive. Prefer the desktop app when you need to search many compositions quickly; the web app is convenient for access without installing anything.
 
 Detailed requirements live in [SRS.md](SRS.md).
 
@@ -59,7 +64,7 @@ Scores are additive per group; a composition’s total is the sum of its groups�
 
 All strategies implement the same producer interface and return structurally valid partitions. Wish-aware strategies typically randomize once per composition so the Monte Carlo loop explores variety.
 
-The desktop app currently generates with **RoundRobin** (see below). Other strategies are available in Logic and in the benchmark project. Polish uses **HillClimbing** on the retained top list only.
+The desktop app currently generates with **RoundRobin** (see below). The Blazor web app uses the same producer. Other strategies are available in Logic and tested in the benchmark project. Polish uses **HillClimbing** on the retained top list only.
 
 ### Baseline
 
@@ -101,7 +106,7 @@ These strategies need a `GroupCompositionScorer` and use affinity / score impact
 
 ## User interface
 
-The desktop app is a linear wizard. Screenshots will go under `docs/images/`—placeholders below.
+Both the Avalonia desktop app and the Blazor WASM web app use the same linear wizard. Screenshots below are from the desktop UI; placeholders live under `docs/images/`. The web app is almost identical in layout, though slightly different colours (to be updated in the future, maybe).
 
 ### 1. Student Data
 
@@ -153,13 +158,13 @@ Start/Stop the Monte Carlo search. The view shows the Top 5 compositions with sc
 
 ## Architecture
 
-Groopr follows an **imperative shell, functional core** split.
+Groopr attempts to follow an **imperative shell, functional core** split. Avalonia and Blazor are separate shells over the same Logic core.
 
 ```mermaid
 flowchart TB
-  subgraph shell [Imperative_shell_AvaloniaUI]
-    VM[ViewModels_wizard_state]
-    IO[File_dialogs_timers_TaskRun]
+  subgraph shells [Imperative_shells]
+    Ava[AvaloniaUI_desktop]
+    Bla[BlazorUI_WASM]
   end
   subgraph core [Functional_core_Logic]
     Gen[Producers]
@@ -168,16 +173,22 @@ flowchart TB
     Keep2[TopCompositionKeeper]
     Models[Immutable_models]
   end
-  VM --> Gen
-  VM --> Inv
-  VM --> Sc
-  VM --> Keep2
-  IO --> VM
+  Ava --> Gen
+  Ava --> Inv
+  Ava --> Sc
+  Ava --> Keep2
+  Bla --> Gen
+  Bla --> Inv
+  Bla --> Sc
+  Bla --> Keep2
 ```
 
 **Functional core (`Logic`)** — Domain models, group sizing, CSV parsing, generation strategies, scorers, invalidators, and the top-list keeper. Prefer pure, testable code with no UI dependencies. Compositions and groups are record-style models; producers yield unscored partitions; scorers and invalidators are pluggable.
 
-**Imperative shell (`AvaloniaUI`)** — Wizard navigation, mutable input configuration, file dialogs, background loops with cancellation, and UI refresh. ViewModels map configuration into Logic types and run the generate → reject → score → keep loop.
+**Imperative shells**
+
+- **`AvaloniaUI`** — Desktop wizard, mutable input configuration, file dialogs, background generation via `Task.Run`, and UI refresh timers.
+- **`BlazorUI`** — Same wizard as routed Blazor pages with a scoped `InputConfiguration`, browser file/clipboard/dialog adapters, and a single-threaded generation loop that yields periodically so the UI can update (hence lower throughput than desktop).
 
 ### Projects
 
@@ -185,6 +196,7 @@ flowchart TB
 | --- | --- |
 | `Logic/` | Domain and algorithms |
 | `AvaloniaUI/` | Desktop shell (Avalonia + MVVM) |
+| `BlazorUI/` | Web shell (Blazor WASM), published to GitHub Pages |
 | `UnitTests/` | xUnit tests focused on Logic |
 | `GroupGenerationBenchmark/` | Console benchmark for strategy speed and score quality |
 | `TestData/` | Sample student fixtures |
@@ -197,9 +209,9 @@ Logic is developed with a dual-agent TDD workflow: one agent writes unit tests f
 
 - .NET 10
 - Avalonia UI (desktop)
+- Blazor WebAssembly (web UI; GitHub Pages: [https://troelsmortensen.github.io/Groopr/](https://troelsmortensen.github.io/Groopr/))
 - CsvHelper (student import)
 - xUnit
-- Blazor WASM planned for a future web UI
 
 ## Importing student data
 
@@ -289,4 +301,3 @@ Fixture: Students50. Blueprint `[4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 3]`. Same s
 
 - More student criteria (DISC profile, physical location, group work type preferences)
 - Additional scorers and invalidators
-- Blazor WASM web UI

@@ -30,7 +30,7 @@ Two GroupCompositions are considered the same if they contain the same groups of
 
 - .NET 10
 - Avalonia UI for the desktop application
-- Eventually Blazor wasm for a web application
+- Blazor WebAssembly for the web application (same wizard flow and Logic core; hosted on GitHub Pages)
 
 ## Implementation strategy
 
